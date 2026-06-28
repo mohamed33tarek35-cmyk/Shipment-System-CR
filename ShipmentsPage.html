@@ -1,0 +1,745 @@
+<!-- ============================================
+     ShipmentsPage.html - صفحة إدارة الشحنات
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+  
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">إدارة الشحنات</h1>
+      <p style="font-size: 14px; color: #757575;">عرض وإدارة جميع الشحنات في النظام</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-primary" onclick="openAddShipmentModal()" data-perm="ADD_SHIPMENT" style="display: none;">
+        <span>➕</span>
+        <span>إضافة شحنة</span>
+      </button>
+      <button class="btn btn-outline" onclick="openImportModal()" data-perm="IMPORT_SHIPMENTS" style="display: none;">
+        <span>📥</span>
+        <span>استيراد</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="search-bar" style="margin-bottom: 20px;">
+    <input type="text" 
+           id="shipmentSearchInput" 
+           class="search-input" 
+           placeholder="بحث برقم التتبع، اسم العميل، رقم الهاتف، المنتج..."
+           onkeydown="if(event.key==='Enter') searchShipments()">
+    <button class="search-btn" onclick="searchShipments()">🔍</button>
+  </div>
+
+  <div class="filters-bar" style="margin-bottom: 20px;">
+    <div class="filter-group">
+      <label class="filter-label">الحالة:</label>
+      <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+        <option value="all">الكل</option>
+        <option value="غير موزعة">غير موزعة</option>
+        <option value="جاهز للاستلام">جاهز للاستلام</option>
+        <option value="تم التسليم">تم التسليم</option>
+        <option value="لا يرد">لا يرد</option>
+        <option value="مؤجل">مؤجل</option>
+        <option value="مرتجع">مرتجع</option>
+        <option value="رفض بسبب الخامة">رفض بسبب الخامة</option>
+        <option value="رفض بسبب التأخير">رفض بسبب التأخير</option>
+        <option value="مغلق">مغلق</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">المحافظة:</label>
+      <select class="filter-select" id="filterGovernorate" onchange="applyFilters()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">الفرع:</label>
+      <select class="filter-select" id="filterBranch" onchange="applyFilters()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">الأولوية:</label>
+      <select class="filter-select" id="filterPriority" onchange="applyFilters()">
+        <option value="all">الكل</option>
+        <option value="منخفض">منخفض</option>
+        <option value="عادي">عادي</option>
+        <option value="عالي">عالي</option>
+        <option value="عاجل">عاجل</option>
+      </select>
+    </div>
+    
+    <div class="filter-group" id="filterEmployeeGroup" style="display: none;" data-perm="VIEW_ALL_SHIPMENTS">
+      <label class="filter-label">الموظف:</label>
+      <select class="filter-select" id="filterEmployee" onchange="applyFilters()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    
+    <button class="btn btn-sm btn-secondary" onclick="resetFilters()">إعادة تعيين</button>
+  </div>
+
+  <!-- Shipments Table -->
+  <div class="card">
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="shipmentsTable">
+          <thead>
+            <tr>
+              <th>رقم التتبع</th>
+              <th>العميل</th>
+              <th>الهاتف</th>
+              <th>المحافظة</th>
+              <th>المنتج</th>
+              <th>السعر</th>
+              <th>الحالة</th>
+              <th>الأولوية</th>
+              <th>الموظف</th>
+              <th>آخر تحديث</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="shipmentsTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="shipmentsCount" style="font-size: 13px; color: #757575;">جاري التحميل...</span>
+      <div id="shipmentsPagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Add/Edit Shipment -->
+<div class="modal-overlay" id="shipmentModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 class="modal-title" id="shipmentModalTitle">إضافة شحنة جديدة</h3>
+      <button class="modal-close" onclick="App.closeModal('shipmentModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="shipmentForm">
+        <input type="hidden" name="id" id="shipmentId">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">رقم التتبع <span class="required">*</span></label>
+            <input type="text" name="TrackingNumber" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">رقم الطلب</label>
+            <input type="text" name="OrderCode" class="form-input">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">اسم العميل <span class="required">*</span></label>
+            <input type="text" name="CustomerName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الهاتف <span class="required">*</span></label>
+            <input type="tel" name="Phone" class="form-input" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الهاتف الثاني</label>
+            <input type="tel" name="SecondPhone" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">المحافظة <span class="required">*</span></label>
+            <select name="Governorate" class="form-select" required>
+              <option value="">اختر المحافظة</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">المدينة</label>
+            <input type="text" name="City" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">الفرع</label>
+            <input type="text" name="Branch" class="form-input">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">العنوان الكامل</label>
+          <textarea name="Address" class="form-textarea" rows="2"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">اسم المنتج <span class="required">*</span></label>
+            <input type="text" name="ProductName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الكمية</label>
+            <input type="number" name="Quantity" class="form-input" value="1" min="1">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">السعر <span class="required">*</span></label>
+            <input type="number" name="Price" class="form-input" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label class="form-label">مبلغ COD</label>
+            <input type="number" name="CODAmount" class="form-input" min="0" step="0.01">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الأولوية</label>
+            <select name="Priority" class="form-select">
+              <option value="عادي">عادي</option>
+              <option value="منخفض">منخفض</option>
+              <option value="عالي">عالي</option>
+              <option value="عاجل">عاجل</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">وسوم</label>
+            <input type="text" name="Tags" class="form-input" placeholder="مفصولة بفاصلة">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea name="Notes" class="form-textarea" rows="3"></textarea>
+        </div>
+        
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('shipmentModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveShipment()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Import CSV -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">استيراد شحنات من CSV</h3>
+      <button class="modal-close" onclick="App.closeModal('importModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ملف CSV</label>
+        <textarea id="csvInput" class="form-textarea" rows="10" placeholder="الصق محتوى CSV هنا..."></textarea>
+        <div style="font-size: 12px; color: #999; margin-top: 8px;">
+          الأعمدة المطلوبة: TrackingNumber, CustomerName, Phone, Governorate, ProductName
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('importModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="importShipments()">استيراد</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Update Status -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">تحديث حالة الشحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('statusModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="statusShipmentId">
+      <div class="form-group">
+        <label class="form-label">الحالة الجديدة <span class="required">*</span></label>
+        <select id="newStatus" class="form-select" required>
+          <option value="جاهز للاستلام">جاهز للاستلام</option>
+          <option value="تم التسليم">تم التسليم</option>
+          <option value="لا يرد">لا يرد</option>
+          <option value="مؤجل">مؤجل</option>
+          <option value="مرتجع">مرتجع</option>
+          <option value="رفض بسبب الخامة">رفض بسبب الخامة</option>
+          <option value="رفض بسبب التأخير">رفض بسبب التأخير</option>
+          <option value="مغلق">مغلق</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea id="statusNotes" class="form-textarea" rows="3" placeholder="أضف ملاحظات عن تحديث الحالة..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('statusModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="updateStatus()">تحديث</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Note -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">إضافة ملاحظة</h3>
+      <button class="modal-close" onclick="App.closeModal('noteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="noteShipmentId">
+      <div class="form-group">
+        <label class="form-label">الملاحظة <span class="required">*</span></label>
+        <textarea id="noteText" class="form-textarea" rows="4" placeholder="اكتب ملاحظتك هنا..." required></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('noteModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="addNote()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Shipments Page Scripts
+// ============================================
+
+let currentPage = 1;
+let currentFilters = {};
+
+function initShipments() {
+  // إظهار/إخفاء عناصر حسب الصلاحيات
+  document.querySelectorAll('[data-perm]').forEach(function(el) {
+    const perm = el.getAttribute('data-perm');
+    if (App.hasPermission(perm)) {
+      el.style.display = '';
+    }
+  });
+  
+  // تحميل الفلاتر
+  loadFilterOptions();
+  
+  // تحميل الشحنات
+  loadShipments();
+}
+
+// ============================================
+// Load Shipments
+// ============================================
+
+function loadShipments(page) {
+  page = page || 1;
+  currentPage = page;
+  
+  App.showLoading();
+  
+  const filters = Object.assign({}, currentFilters, {
+    page: page,
+    pageSize: 20
+  });
+  
+  App.api('getShipments', { filters: filters })
+    .then(function(result) {
+      renderShipmentsTable(result.data.shipments);
+      renderPagination(result.data.pagination);
+      document.getElementById('shipmentsCount').textContent = 
+        'إجمالي: ' + (result.data.pagination ? result.data.pagination.totalItems : 0) + ' شحنة';
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل الشحنات', 'error');
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Render Table
+// ============================================
+
+function renderShipmentsTable(shipments) {
+  const tbody = document.getElementById('shipmentsTableBody');
+  if (!tbody) return;
+  
+  if (!shipments || shipments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#999;">لا توجد شحنات</td></tr>';
+    return;
+  }
+  
+  const statusClassMap = {
+    'غير موزعة': 'unassigned',
+    'جاهز للاستلام': 'ready',
+    'تم التسليم': 'delivered',
+    'لا يرد': 'no-answer',
+    'مؤجل': 'postponed',
+    'مرتجع': 'returned',
+    'رفض بسبب الخامة': 'rejected-quality',
+    'رفض بسبب التأخير': 'rejected-delay',
+    'مغلق': 'closed'
+  };
+  
+  const priorityClassMap = {
+    'منخفض': 'low',
+    'عادي': 'normal',
+    'عالي': 'high',
+    'عاجل': 'urgent'
+  };
+  
+  tbody.innerHTML = shipments.map(function(s) {
+    const statusClass = statusClassMap[s.status] || '';
+    const priorityClass = priorityClassMap[s.priority] || '';
+    
+    return '<tr>' +
+      '<td><strong>#' + App.escapeHtml(s.trackingNumber) + '</strong></td>' +
+      '<td>' + App.escapeHtml(s.customerName) + '</td>' +
+      '<td dir="ltr" style="text-align:right;">' + App.escapeHtml(s.phone) + '</td>' +
+      '<td>' + App.escapeHtml(s.governorate) + '</td>' +
+      '<td>' + App.escapeHtml(s.productName) + '</td>' +
+      '<td>' + App.formatCurrency(s.price) + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + App.escapeHtml(s.status) + '</span></td>' +
+      '<td><span class="priority-badge ' + priorityClass + '">' + App.escapeHtml(s.priority) + '</span></td>' +
+      '<td>' + (s.assignedEmployeeName || '<span style="color:#999;">غير موزعة</span>') + '</td>' +
+      '<td style="font-size:12px;color:#999;">' + App.formatDateTime(s.updatedAt) + '</td>' +
+      '<td>' +
+        '<div style="display:flex;gap:4px;">' +
+          '<button class="btn btn-sm btn-outline" onclick="viewShipment(\'' + s.id + '\')" title="عرض">👁️</button>' +
+          '<button class="btn btn-sm btn-primary" onclick="openStatusModal(\'' + s.id + '\')" title="تحديث حالة">📊</button>' +
+          '<button class="btn btn-sm btn-secondary" onclick="openNoteModal(\'' + s.id + '\')" title="ملاحظة">📝</button>' +
+          (App.hasPermission('EDIT_SHIPMENT') ? '<button class="btn btn-sm btn-outline" onclick="editShipment(\'' + s.id + '\')" title="تعديل">✏️</button>' : '') +
+          (App.hasPermission('DELETE_SHIPMENT') ? '<button class="btn btn-sm btn-outline" onclick="deleteShipment(\'' + s.id + '\')" title="حذف" style="color:#F44336;">🗑️</button>' : '') +
+        '</div>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderPagination(pagination) {
+  const container = document.getElementById('shipmentsPagination');
+  if (!container || !pagination) return;
+  
+  if (pagination.totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let html = '<div class="pagination">';
+  
+  html += '<button class="pagination-btn" ' + (pagination.hasPrev ? '' : 'disabled') + 
+          ' onclick="loadShipments(' + (pagination.currentPage - 1) + ')">›</button>';
+  
+  const startPage = Math.max(1, pagination.currentPage - 2);
+  const endPage = Math.min(pagination.totalPages, startPage + 4);
+  
+  for (let i = startPage; i <= endPage; i++) {
+    html += '<button class="pagination-btn ' + (i === pagination.currentPage ? 'active' : '') + 
+            '" onclick="loadShipments(' + i + ')">' + i + '</button>';
+  }
+  
+  html += '<button class="pagination-btn" ' + (pagination.hasNext ? '' : 'disabled') + 
+          ' onclick="loadShipments(' + (pagination.currentPage + 1) + ')">‹</button>';
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ============================================
+// Filters
+// ============================================
+
+function loadFilterOptions() {
+  // تحميل المحافظات
+  const govSelect = document.getElementById('filterGovernorate');
+  if (govSelect) {
+    const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحر الأحمر',
+      'البحيرة', 'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية',
+      'المنيا', 'القليوبية', 'الوادي الجديد', 'السويس', 'اسوان',
+      'اسيوط', 'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية',
+      'جنوب سيناء', 'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا',
+      'شمال سيناء', 'سوهاج'];
+    
+    governorates.forEach(function(g) {
+      const opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g;
+      govSelect.appendChild(opt);
+    });
+  }
+  
+  // تحميل الموظفين (للـ Admin)
+  if (App.hasPermission('VIEW_ALL_SHIPMENTS')) {
+    document.getElementById('filterEmployeeGroup').style.display = '';
+    
+    App.api('getEmployees', {})
+      .then(function(result) {
+        const empSelect = document.getElementById('filterEmployee');
+        if (empSelect && result.data) {
+          result.data.forEach(function(emp) {
+            const opt = document.createElement('option');
+            opt.value = emp.ID;
+            opt.textContent = emp.Name || emp.Username;
+            empSelect.appendChild(opt);
+          });
+        }
+      });
+  }
+}
+
+function applyFilters() {
+  currentFilters = {
+    status: document.getElementById('filterStatus').value,
+    governorate: document.getElementById('filterGovernorate').value,
+    branch: document.getElementById('filterBranch').value,
+    priority: document.getElementById('filterPriority').value,
+    employee: document.getElementById('filterEmployee').value
+  };
+  
+  loadShipments(1);
+}
+
+function resetFilters() {
+  document.getElementById('filterStatus').value = 'all';
+  document.getElementById('filterGovernorate').value = 'all';
+  document.getElementById('filterBranch').value = 'all';
+  document.getElementById('filterPriority').value = 'all';
+  document.getElementById('filterEmployee').value = 'all';
+  document.getElementById('shipmentSearchInput').value = '';
+  
+  currentFilters = {};
+  loadShipments(1);
+}
+
+function searchShipments() {
+  const query = document.getElementById('shipmentSearchInput').value.trim();
+  currentFilters.query = query;
+  loadShipments(1);
+}
+
+// ============================================
+// Add/Edit Shipment
+// ============================================
+
+function openAddShipmentModal() {
+  document.getElementById('shipmentModalTitle').textContent = 'إضافة شحنة جديدة';
+  document.getElementById('shipmentId').value = '';
+  App.resetForm('shipmentForm');
+  App.openModal('shipmentModal');
+}
+
+function editShipment(id) {
+  App.showLoading();
+  
+  App.api('getShipment', { shipmentId: id })
+    .then(function(result) {
+      const shipment = result.data;
+      document.getElementById('shipmentModalTitle').textContent = 'تعديل شحنة';
+      document.getElementById('shipmentId').value = id;
+      
+      App.setFormData('shipmentForm', {
+        TrackingNumber: shipment.trackingNumber,
+        OrderCode: shipment.orderCode,
+        CustomerName: shipment.customerName,
+        Phone: shipment.phone,
+        SecondPhone: shipment.secondPhone,
+        Governorate: shipment.governorate,
+        City: shipment.city,
+        Branch: shipment.branch,
+        Address: shipment.address,
+        ProductName: shipment.productName,
+        Quantity: shipment.quantity,
+        Price: shipment.price,
+        CODAmount: shipment.codAmount,
+        Priority: shipment.priority,
+        Tags: shipment.tags,
+        Notes: shipment.notes
+      });
+      
+      App.hideLoading();
+      App.openModal('shipmentModal');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل بيانات الشحنة', 'error');
+      App.hideLoading();
+    });
+}
+
+function saveShipment() {
+  const id = document.getElementById('shipmentId').value;
+  const data = App.getFormData('shipmentForm');
+  
+  // Validation
+  if (!data.TrackingNumber || !data.CustomerName || !data.Phone || !data.Governorate || !data.ProductName || !data.Price) {
+    App.toast('يرجى ملء جميع الحقول المطلوبة', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  const action = id ? 'updateShipment' : 'createShipment';
+  const payload = id ? { shipmentId: id, shipment: data } : { shipment: data };
+  
+  App.api(action, payload)
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('shipmentModal');
+      loadShipments(currentPage);
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في الحفظ', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Delete Shipment
+// ============================================
+
+function deleteShipment(id) {
+  App.confirm('هل أنت متأكد من حذف هذه الشحنة؟', function() {
+    App.showLoading();
+    
+    App.api('deleteShipment', { shipmentId: id })
+      .then(function(result) {
+        App.toast(result.message, 'success');
+        loadShipments(currentPage);
+      })
+      .catch(function(result) {
+        App.toast(result.message || 'فشل في الحذف', 'error');
+      })
+      .finally(function() {
+        App.hideLoading();
+      });
+  });
+}
+
+// ============================================
+// Update Status
+// ============================================
+
+function openStatusModal(id) {
+  document.getElementById('statusShipmentId').value = id;
+  document.getElementById('newStatus').value = 'جاهز للاستلام';
+  document.getElementById('statusNotes').value = '';
+  App.openModal('statusModal');
+}
+
+function updateStatus() {
+  const id = document.getElementById('statusShipmentId').value;
+  const status = document.getElementById('newStatus').value;
+  const notes = document.getElementById('statusNotes').value;
+  
+  if (!status) {
+    App.toast('يرجى اختيار الحالة', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('updateShipmentStatus', {
+    shipmentId: id,
+    status: status,
+    notes: notes
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('statusModal');
+      loadShipments(currentPage);
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحديث الحالة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Add Note
+// ============================================
+
+function openNoteModal(id) {
+  document.getElementById('noteShipmentId').value = id;
+  document.getElementById('noteText').value = '';
+  App.openModal('noteModal');
+}
+
+function addNote() {
+  const id = document.getElementById('noteShipmentId').value;
+  const note = document.getElementById('noteText').value.trim();
+  
+  if (!note) {
+    App.toast('يرجى كتابة ملاحظة', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('addShipmentNote', {
+    shipmentId: id,
+    note: note
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('noteModal');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إضافة الملاحظة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Import
+// ============================================
+
+function openImportModal() {
+  document.getElementById('csvInput').value = '';
+  App.openModal('importModal');
+}
+
+function importShipments() {
+  const csvContent = document.getElementById('csvInput').value.trim();
+  
+  if (!csvContent) {
+    App.toast('يرجى لصق محتوى CSV', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('importShipments', { csvContent: csvContent })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('importModal');
+      loadShipments(1);
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في الاستيراد', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// View Shipment
+// ============================================
+
+function viewShipment(id) {
+  sessionStorage.setItem('currentShipment', id);
+  App.navigate('shipment-detail');
+}
+</script>
