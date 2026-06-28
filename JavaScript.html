@@ -1,0 +1,826 @@
+<!-- ============================================
+     JavaScript.html - JavaScript المشترك
+     ============================================ -->
+
+<script>
+// ============================================
+// App Namespace
+// ============================================
+const App = {
+  token: null,
+  user: null,
+  currentPage: 'dashboard',
+  isLoading: false,
+  sidebarCollapsed: false,
+  darkMode: false,
+  
+  // ============================================
+  // Initialization
+  // ============================================
+  
+  init: function() {
+    // قراءة البيانات من الـ template
+    this.token = document.querySelector('meta[name="app-token"]')?.content || '';
+    this.user = JSON.parse(document.querySelector('meta[name="app-user"]')?.content || '{}');
+    this.currentPage = document.querySelector('meta[name="app-page"]')?.content || 'dashboard';
+    
+    // تهيئة الواجهة
+    this.initSidebar();
+    this.initTopbar();
+    this.initTheme();
+    this.initNotifications();
+    
+    // تحميل الصفحة الحالية
+    this.loadPage(this.currentPage);
+    
+    // إخفاء شاشة التحميل
+    setTimeout(function() {
+      document.getElementById('loadingScreen')?.classList.add('hidden');
+    }, 500);
+    
+    // التحقق من الجلسة دورياً
+    setInterval(function() {
+      App.checkSession();
+    }, 60000); // كل دقيقة
+    
+    console.log('App initialized:', this.user.name);
+  },
+  
+  // ============================================
+  // API Communication
+  // ============================================
+  
+  api: function(action, data) {
+    return new Promise(function(resolve, reject) {
+      const payload = Object.assign({}, data || {}, {
+        action: action,
+        token: App.token
+      });
+      
+      fetch('', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        if (result.success) {
+          resolve(result);
+        } else {
+          if (result.message === 'انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى') {
+            App.logout();
+          }
+          reject(result);
+        }
+      })
+      .catch(function(error) {
+        reject({ success: false, message: 'خطأ في الاتصال بالخادم', error: error });
+      });
+    });
+  },
+  
+  // ============================================
+  // Navigation
+  // ============================================
+  
+  navigate: function(page) {
+    this.currentPage = page;
+    this.loadPage(page);
+    this.updateActiveMenu();
+    this.updateTopbarTitle(page);
+    
+    // إغلاق Sidebar على الموبايل
+    if (window.innerWidth <= 992) {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+    
+    // تحديث URL بدون إعادة تحميل
+    window.history.replaceState({}, '', '?token=' + this.token + '&page=' + page);
+  },
+  
+  loadPage: function(page) {
+    const contentArea = document.getElementById('pageContent');
+    if (!contentArea) return;
+    
+    contentArea.innerHTML = '<div class="loading-spinner" style="margin: 40px auto;"></div>';
+    
+    // تحميل محتوى الصفحة
+    const pageMap = {
+      'dashboard': 'DashboardPage',
+      'shipments': 'ShipmentsPage',
+      'shipment-detail': 'ShipmentDetail',
+      'assign': 'AssignPage',
+      'search': 'SearchPage',
+      'reports': 'ReportsPage',
+      'employees': 'EmployeesPage',
+      'history': 'HistoryPage',
+      'settings': 'SettingsPage'
+    };
+    
+    const pageFile = pageMap[page] || 'DashboardPage';
+    
+    // محاولة تحميل من template
+    const template = document.getElementById('template-' + pageFile);
+    if (template) {
+      contentArea.innerHTML = template.innerHTML;
+      this.initPageScripts(page);
+    } else {
+      contentArea.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">الصفحة غير موجودة</div></div>';
+    }
+  },
+  
+  initPageScripts: function(page) {
+    // تهيئة سكريبتات خاصة بكل صفحة
+    switch(page) {
+      case 'dashboard':
+        if (typeof initDashboard === 'function') initDashboard();
+        break;
+      case 'shipments':
+        if (typeof initShipments === 'function') initShipments();
+        break;
+      case 'shipment-detail':
+        if (typeof initShipmentDetail === 'function') initShipmentDetail();
+        break;
+      case 'assign':
+        if (typeof initAssign === 'function') initAssign();
+        break;
+      case 'search':
+        if (typeof initSearch === 'function') initSearch();
+        break;
+      case 'reports':
+        if (typeof initReports === 'function') initReports();
+        break;
+      case 'employees':
+        if (typeof initEmployees === 'function') initEmployees();
+        break;
+      case 'history':
+        if (typeof initHistory === 'function') initHistory();
+        break;
+      case 'settings':
+        if (typeof initSettings === 'function') initSettings();
+        break;
+    }
+  },
+  
+  updateActiveMenu: function() {
+    document.querySelectorAll('.sidebar-menu-link').forEach(function(link) {
+      link.classList.remove('active');
+      if (link.dataset.page === App.currentPage) {
+        link.classList.add('active');
+      }
+    });
+  },
+  
+  updateTopbarTitle: function(page) {
+    const titles = {
+      'dashboard': 'لوحة التحكم',
+      'shipments': 'إدارة الشحنات',
+      'shipment-detail': 'تفاصيل الشحنة',
+      'assign': 'توزيع الشحنات',
+      'search': 'البحث',
+      'reports': 'التقارير',
+      'employees': 'الموظفين',
+      'history': 'سجل العمليات',
+      'settings': 'الإعدادات'
+    };
+    
+    const titleEl = document.getElementById('topbarTitle');
+    if (titleEl) {
+      titleEl.textContent = titles[page] || 'لوحة التحكم';
+    }
+  },
+  
+  // ============================================
+  // Sidebar
+  // ============================================
+  
+  initSidebar: function() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function() {
+        App.toggleSidebar();
+      });
+    }
+    
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+      });
+    }
+    
+    // إغلاق Sidebar عند النقر خارجها على الموبايل
+    document.addEventListener('click', function(e) {
+      if (window.innerWidth <= 992 && 
+          !sidebar.contains(e.target) && 
+          !mobileBtn.contains(e.target) &&
+          sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+      }
+    });
+  },
+  
+  toggleSidebar: function() {
+    const sidebar = document.getElementById('sidebar');
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+    sidebar.classList.toggle('collapsed', this.sidebarCollapsed);
+    
+    // تخزين الحالة
+    localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
+  },
+  
+  initTopbar: function() {
+    // تحديث معلومات المستخدم
+    const userNameEl = document.getElementById('topbarUserName');
+    const userRoleEl = document.getElementById('topbarUserRole');
+    
+    if (userNameEl && this.user.name) {
+      userNameEl.textContent = this.user.name;
+    }
+    if (userRoleEl && this.user.role) {
+      const roleNames = {
+        'SYSTEM_ADMIN': 'مدير النظام',
+        'TEAM_LEADER': 'رئيس الفريق',
+        'SENIOR_CS': 'موظف أول',
+        'EMPLOYEE': 'موظف'
+      };
+      userRoleEl.textContent = roleNames[this.user.role] || this.user.role;
+    }
+  },
+  
+  // ============================================
+  // Theme
+  // ============================================
+  
+  initTheme: function() {
+    const savedTheme = localStorage.getItem('darkMode');
+    if (savedTheme === 'true') {
+      this.darkMode = true;
+      document.body.classList.add('dark-mode');
+    }
+  },
+  
+  toggleTheme: function() {
+    this.darkMode = !this.darkMode;
+    document.body.classList.toggle('dark-mode', this.darkMode);
+    localStorage.setItem('darkMode', this.darkMode);
+  },
+  
+  // ============================================
+  // Notifications
+  // ============================================
+  
+  initNotifications: function() {
+    this.loadNotifications();
+    
+    // تحديث الإشعارات كل 5 دقائق
+    setInterval(function() {
+      App.loadNotifications();
+    }, 300000);
+  },
+  
+  loadNotifications: function() {
+    this.api('getNotifications', {})
+      .then(function(result) {
+        const notifications = result.data || [];
+        const unreadCount = notifications.filter(function(n) { 
+          return n.IsRead !== 'true' && n.IsRead !== true; 
+        }).length;
+        
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+          badge.textContent = unreadCount;
+          badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        }
+        
+        App.notifications = notifications;
+      })
+      .catch(function() {
+        // تجاهل الأخطاء
+      });
+  },
+  
+  showNotifications: function() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) return;
+    
+    dropdown.innerHTML = '';
+    
+    if (!this.notifications || this.notifications.length === 0) {
+      dropdown.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">لا توجد إشعارات</div>';
+      dropdown.classList.toggle('show');
+      return;
+    }
+    
+    this.notifications.slice(0, 10).forEach(function(notif) {
+      const item = document.createElement('div');
+      item.className = 'notification-item' + (notif.IsRead === 'true' ? ' read' : '');
+      item.innerHTML = '<div class="notification-title">' + notif.Message + '</div>' +
+        '<div class="notification-time">' + notif.CreatedAt + '</div>';
+      item.onclick = function() {
+        App.markNotificationRead(notif.ID);
+      };
+      dropdown.appendChild(item);
+    });
+    
+    dropdown.classList.toggle('show');
+  },
+  
+  markNotificationRead: function(id) {
+    this.api('markNotificationRead', { notificationId: id })
+      .then(function() {
+        App.loadNotifications();
+      });
+  },
+  
+  // ============================================
+  // Toast Notifications
+  // ============================================
+  
+  toast: function(message, type, title) {
+    type = type || 'info';
+    title = title || '';
+    
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const icons = {
+      success: '✓',
+      error: '✕',
+      warning: '!',
+      info: 'i'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.innerHTML = 
+      '<div class="toast-icon">' + icons[type] + '</div>' +
+      '<div class="toast-content">' +
+        (title ? '<div class="toast-title">' + title + '</div>' : '') +
+        '<div class="toast-message">' + message + '</div>' +
+      '</div>' +
+      '<button class="toast-close" onclick="this.parentElement.remove()">×</button>';
+    
+    container.appendChild(toast);
+    
+    // إزالة تلقائياً بعد 5 ثوانٍ
+    setTimeout(function() {
+      toast.style.animation = 'slideOutLeft 0.3s ease forwards';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 5000);
+  },
+  
+  // ============================================
+  // Modal
+  // ============================================
+  
+  openModal: function(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  },
+  
+  closeModal: function(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  },
+  
+  // ============================================
+  // Form Helpers
+  // ============================================
+  
+  getFormData: function(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return {};
+    
+    const data = {};
+    const elements = form.querySelectorAll('input, select, textarea');
+    
+    elements.forEach(function(el) {
+      if (el.name) {
+        if (el.type === 'checkbox') {
+          data[el.name] = el.checked;
+        } else if (el.type === 'number') {
+          data[el.name] = parseFloat(el.value) || 0;
+        } else {
+          data[el.name] = el.value.trim();
+        }
+      }
+    });
+    
+    return data;
+  },
+  
+  setFormData: function(formId, data) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    
+    Object.keys(data).forEach(function(key) {
+      const el = form.querySelector('[name="' + key + '"]');
+      if (el) {
+        if (el.type === 'checkbox') {
+          el.checked = !!data[key];
+        } else {
+          el.value = data[key] || '';
+        }
+      }
+    });
+  },
+  
+  resetForm: function(formId) {
+    const form = document.getElementById(formId);
+    if (form) form.reset();
+  },
+  
+  validateForm: function(formId, rules) {
+    const form = document.getElementById(formId);
+    if (!form) return { valid: true, errors: [] };
+    
+    const errors = [];
+    const data = this.getFormData(formId);
+    
+    if (rules) {
+      Object.keys(rules).forEach(function(field) {
+        const rule = rules[field];
+        const value = data[field];
+        
+        if (rule.required && (!value || value.toString().trim() === '')) {
+          errors.push({ field: field, message: rule.requiredMessage || 'هذا الحقل مطلوب' });
+        }
+        
+        if (rule.minLength && value && value.length < rule.minLength) {
+          errors.push({ field: field, message: 'يجب أن يكون ' + rule.minLength + ' أحرف على الأقل' });
+        }
+        
+        if (rule.pattern && value && !rule.pattern.test(value)) {
+          errors.push({ field: field, message: rule.patternMessage || 'قيمة غير صحيحة' });
+        }
+      });
+    }
+    
+    // عرض الأخطاء
+    form.querySelectorAll('.form-error').forEach(function(el) { el.classList.remove('show'); });
+    errors.forEach(function(err) {
+      const errorEl = form.querySelector('[data-error="' + err.field + '"]');
+      if (errorEl) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('show');
+      }
+    });
+    
+    return { valid: errors.length === 0, errors: errors };
+  },
+  
+  // ============================================
+  // Table Helpers
+  // ============================================
+  
+  renderTable: function(containerId, headers, rows, options) {
+    options = options || {};
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    let html = '<div class="table-container"><table class="data-table"><thead><tr>';
+    headers.forEach(function(h) {
+      html += '<th>' + (h.label || h) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    
+    if (rows.length === 0) {
+      html += '<tr><td colspan="' + headers.length + '" style="text-align:center;padding:40px;color:#999;">لا توجد بيانات</td></tr>';
+    } else {
+      rows.forEach(function(row) {
+        html += '<tr>';
+        headers.forEach(function(h) {
+          const key = typeof h === 'string' ? h : h.key;
+          const value = row[key] || '';
+          const formatter = h.formatter;
+          html += '<td>' + (formatter ? formatter(value, row) : value) + '</td>';
+        });
+        html += '</tr>';
+      });
+    }
+    
+    html += '</tbody></table></div>';
+    
+    // Pagination
+    if (options.pagination) {
+      html += this.renderPagination(options.pagination);
+    }
+    
+    container.innerHTML = html;
+  },
+  
+  renderPagination: function(pagination) {
+    if (!pagination || pagination.totalPages <= 1) return '';
+    
+    let html = '<div class="pagination">';
+    
+    // Previous
+    html += '<button class="pagination-btn" ' + (pagination.hasPrev ? '' : 'disabled') + 
+            ' onclick="App.goToPage(' + (pagination.currentPage - 1) + ')">›</button>';
+    
+    // Pages
+    const startPage = Math.max(1, pagination.currentPage - 2);
+    const endPage = Math.min(pagination.totalPages, startPage + 4);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      html += '<button class="pagination-btn ' + (i === pagination.currentPage ? 'active' : '') + 
+              '" onclick="App.goToPage(' + i + ')">' + i + '</button>';
+    }
+    
+    // Next
+    html += '<button class="pagination-btn" ' + (pagination.hasNext ? '' : 'disabled') + 
+            ' onclick="App.goToPage(' + (pagination.currentPage + 1) + ')">‹</button>';
+    
+    html += '<span class="pagination-info">صفحة ' + pagination.currentPage + ' من ' + pagination.totalPages + 
+            ' (' + pagination.totalItems + ' سجل)</span>';
+    
+    html += '</div>';
+    return html;
+  },
+  
+  goToPage: function(page) {
+    // يتم تجاوزها في كل صفحة
+  },
+  
+  // ============================================
+  // Chart Helpers (Canvas)
+  // ============================================
+  
+  drawBarChart: function(canvasId, data, options) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth;
+    const height = canvas.height = canvas.offsetHeight;
+    
+    options = options || {};
+    const padding = options.padding || 40;
+    const barWidth = options.barWidth || 30;
+    const barGap = options.barGap || 10;
+    const maxValue = Math.max.apply(null, data.map(function(d) { return d.value; })) || 1;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // رسم المحاور
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+    
+    // رسم الأعمدة
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+    const totalBarWidth = data.length * barWidth + (data.length - 1) * barGap;
+    const startX = padding + (chartWidth - totalBarWidth) / 2;
+    
+    data.forEach(function(item, index) {
+      const x = startX + index * (barWidth + barGap);
+      const barHeight = (item.value / maxValue) * chartHeight;
+      const y = height - padding - barHeight;
+      
+      // الظل
+      ctx.fillStyle = item.color || '#1976D2';
+      ctx.fillRect(x, y, barWidth, barHeight);
+      
+      // القيمة
+      ctx.fillStyle = '#333';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.value, x + barWidth / 2, y - 5);
+      
+      // التسمية
+      ctx.fillStyle = '#666';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(item.label, x + barWidth / 2, height - padding + 15);
+    });
+  },
+  
+  drawPieChart: function(canvasId, data, options) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth;
+    const height = canvas.height = canvas.offsetHeight;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2 - 40;
+    
+    const total = data.reduce(function(sum, item) { return sum + item.value; }, 0) || 1;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    let startAngle = -Math.PI / 2;
+    
+    data.forEach(function(item) {
+      const sliceAngle = (item.value / total) * 2 * Math.PI;
+      const endAngle = startAngle + sliceAngle;
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      
+      ctx.fillStyle = item.color || '#1976D2';
+      ctx.fill();
+      
+      // التسمية
+      const midAngle = startAngle + sliceAngle / 2;
+      const labelX = centerX + Math.cos(midAngle) * (radius * 0.7);
+      const labelY = centerY + Math.sin(midAngle) * (radius * 0.7);
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(Math.round((item.value / total) * 100) + '%', labelX, labelY);
+      
+      startAngle = endAngle;
+    });
+  },
+  
+  drawLineChart: function(canvasId, data, options) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth;
+    const height = canvas.height = canvas.offsetHeight;
+    
+    options = options || {};
+    const padding = options.padding || 40;
+    const maxValue = Math.max.apply(null, data.map(function(d) { return d.value; })) || 1;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // المحاور
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+    
+    // الخط
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+    const stepX = chartWidth / (data.length - 1 || 1);
+    
+    ctx.strokeStyle = options.color || '#1976D2';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    data.forEach(function(item, index) {
+      const x = padding + index * stepX;
+      const y = height - padding - (item.value / maxValue) * chartHeight;
+      
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      
+      // النقاط
+      ctx.fillStyle = options.color || '#1976D2';
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // التسميات
+      ctx.fillStyle = '#666';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.label, x, height - padding + 15);
+    });
+    
+    ctx.stroke();
+  },
+  
+  // ============================================
+  // Session Management
+  // ============================================
+  
+  checkSession: function() {
+    this.api('checkSession', {})
+      .then(function(result) {
+        if (!result.data || !result.data.active) {
+          App.logout();
+        }
+      })
+      .catch(function() {
+        // تجاهل
+      });
+  },
+  
+  logout: function() {
+    this.api('logout', {})
+      .finally(function() {
+        localStorage.removeItem('appToken');
+        window.location.href = window.location.pathname;
+      });
+  },
+  
+  // ============================================
+  // Permission Helpers
+  // ============================================
+  
+  hasPermission: function(permission) {
+    if (!this.user || !this.user.permissions) return false;
+    return this.user.permissions.indexOf(permission) !== -1;
+  },
+  
+  hasAnyPermission: function(permissions) {
+    if (!this.user || !this.user.permissions) return false;
+    for (let i = 0; i < permissions.length; i++) {
+      if (this.user.permissions.indexOf(permissions[i]) !== -1) return true;
+    }
+    return false;
+  },
+  
+  // ============================================
+  // Utility Functions
+  // ============================================
+  
+  formatDate: function(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('ar-EG');
+  },
+  
+  formatDateTime: function(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  },
+  
+  formatNumber: function(num) {
+    if (num === undefined || num === null) return '0';
+    return parseFloat(num).toLocaleString('ar-EG');
+  },
+  
+  formatCurrency: function(amount) {
+    return this.formatNumber(amount) + ' ج.م';
+  },
+  
+  escapeHtml: function(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  },
+  
+  debounce: function(func, wait) {
+    let timeout;
+    return function() {
+      const context = this, args = arguments;
+      clearTimeout(timeout);
+      timeout = setTimeout(function() { func.apply(context, args); }, wait);
+    };
+  },
+  
+  confirm: function(message, onConfirm, onCancel) {
+    if (window.confirm(message)) {
+      if (onConfirm) onConfirm();
+    } else {
+      if (onCancel) onCancel();
+    }
+  },
+  
+  // ============================================
+  // Loading State
+  // ============================================
+  
+  showLoading: function() {
+    this.isLoading = true;
+    document.body.classList.add('loading');
+  },
+  
+  hideLoading: function() {
+    this.isLoading = false;
+    document.body.classList.remove('loading');
+  }
+};
+
+// ============================================
+// Initialize on DOM Ready
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+  App.init();
+});
+</script>
