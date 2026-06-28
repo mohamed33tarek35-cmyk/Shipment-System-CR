@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X-BRAND SYSTEM - تسجيل الدخول</title>
+  
+  <style>
+    /* ============================================
+       CSS Variables
+       ============================================ */
+    :root {
+      --primary: #1976D2;
+      --primary-dark: #115293;
+      --primary-light: #4791DB;
+      --primary-50: #E3F2FD;
+      --primary-10: rgba(25, 118, 210, 0.08);
+      
+      --gray-50: #FAFAFA;
+      --gray-100: #F5F5F5;
+      --gray-200: #EEEEEE;
+      --gray-300: #E0E0E0;
+      --gray-400: #BDBDBD;
+      --gray-500: #9E9E9E;
+      --gray-600: #757575;
+      --gray-700: #616161;
+      --gray-800: #424242;
+      --gray-900: #212121;
+      
+      --success: #4CAF50;
+      --error: #F44336;
+      --warning: #FF9800;
+      
+      --shadow-1: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.12);
+      --shadow-2: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-3: 0 10px 25px rgba(0,0,0,0.1), 0 6px 10px rgba(0,0,0,0.08);
+      --shadow-4: 0 20px 40px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.08);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      --font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+    }
+
+    /* ============================================
+       Reset & Base
+       ============================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-family);
+      direction: rtl;
+      text-align: right;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       Background & Layout
+       ============================================ */
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: linear-gradient(135deg, #0a1628 0%, #1a365d 50%, #0a1628 100%);
+      overflow: hidden;
+    }
+
+    /* Animated Background Shapes */
+    .login-page::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(25, 118, 210, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .login-page::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(25, 118, 210, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: float 25s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(-30px, 30px) scale(1.05); }
+      66% { transform: translate(20px, -20px) scale(0.95); }
+    }
+
+    /* Grid Pattern Overlay */
+    .grid-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    /* ============================================
+       Login Container
+       ============================================ */
+    .login-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 480px;
+      padding: 0 24px;
+    }
+
+    /* ============================================
+       Login Card
+       ============================================ */
+    .login-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-4);
+      overflow: hidden;
+      animation: cardAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light), var(--primary));
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes cardAppear {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ============================================
+       Card Header / Logo Section
+       ============================================ */
+    .login-header {
+      padding: 48px 40px 32px;
+      text-align: center;
+      position: relative;
+    }
+
+    .login-logo-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 24px;
+    }
+
+    .login-logo {
+      width: 88px;
+      height: 88px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.3);
+      position: relative;
+      z-index: 2;
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { box-shadow: 0 8px 24px rgba(25, 118, 210, 0.3); }
+      50% { box-shadow: 0 8px 32px rgba(25, 118, 210, 0.5); }
+    }
+
+    .login-logo-ring {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      right: -8px;
+      bottom: -8px;
+      border: 2px solid rgba(25, 118, 210, 0.15);
+      border-radius: calc(var(--radius-lg) + 8px);
+      animation: ringRotate 8s linear infinite;
+    }
+
+    @keyframes ringRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .login-brand-name {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .login-system-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 15px;
+      color: var(--gray-500);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    .login-divider {
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 2px;
+      margin: 16px auto 0;
+    }
+
+    /* ============================================
+       Form Section
+       ============================================ */
+    .login-form-wrapper {
+      padding: 0 40px 40px;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+      transition: color var(--transition-fast);
+    }
+
+    .form-input-wrapper {
+      position: relative;
+    }
+
+    .form-input-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: var(--gray-400);
+      transition: color var(--transition-fast);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 48px 14px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-family: var(--font-family);
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: all var(--transition-fast);
+      outline: none;
+    }
+
+    .form-input::placeholder {
+      color: var(--gray-400);
+      font-size: 14px;
+    }
+
+    .form-input:hover {
+      border-color: var(--gray-300);
+      background: #fff;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 4px var(--primary-10);
+    }
+
+    .form-input:focus + .form-input-icon,
+    .form-input-wrapper:focus-within .form-input-icon {
+      color: var(--primary);
+    }
+
+    /* Password Toggle */
+    .password-toggle {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      transition: color var(--transition-fast);
+    }
+
+    .password-toggle:hover {
+      color: var(--gray-600);
+    }
+
+    /* ============================================
+       Remember Me & Forgot Password
+       ============================================ */
+    .login-options {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: -4px;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .remember-me input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .remember-me span {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .forgot-password {
+      font-size: 13px;
+      color: var(--primary);
+      font-weight: 500;
+      transition: color var(--transition-fast);
+    }
+
+    .forgot-password:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    /* ============================================
+       Login Button
+       ============================================ */
+    .login-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 700;
+      font-family: var(--font-family);
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      position: relative;
+      overflow: hidden;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.25);
+    }
+
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.35);
+    }
+
+    .login-btn:hover::before {
+      left: 100%;
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .login-btn .btn-icon {
+      font-size: 18px;
+    }
+
+    .login-btn .btn-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .login-btn.loading .btn-text,
+    .login-btn.loading .btn-icon {
+      display: none;
+    }
+
+    .login-btn.loading .btn-spinner {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================
+       Error Message
+       ============================================ */
+    .login-error {
+      background: linear-gradient(135deg, #FFEBEE 0%, #FCE4EC 100%);
+      border-right: 4px solid var(--error);
+      color: #C62828;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: shake 0.5s ease;
+    }
+
+    .login-error.show {
+      display: flex;
+    }
+
+    .login-error-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* ============================================
+       Security Badge
+       ============================================ */
+    .security-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--gray-200);
+    }
+
+    .security-badge-icon {
+      font-size: 16px;
+      color: var(--success);
+    }
+
+    .security-badge-text {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    /* ============================================
+       Footer
+       ============================================ */
+    .login-footer {
+      margin-top: 32px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .footer-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      margin-bottom: 20px;
+    }
+
+    .footer-copyright {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+      font-weight: 400;
+    }
+
+    .footer-powered {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .footer-powered .developer-name {
+      color: var(--primary);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    /* ============================================
+       Responsive
+       ============================================ */
+    @media (max-width: 480px) {
+      .login-card {
+        border-radius: var(--radius-md);
+      }
+      
+      .login-header {
+        padding: 36px 24px 24px;
+      }
+      
+      .login-brand-name {
+        font-size: 24px;
+      }
+      
+      .login-form-wrapper {
+        padding: 0 24px 32px;
+      }
+      
+      .login-logo {
+        width: 72px;
+        height: 72px;
+        font-size: 32px;
+      }
+    }
+
+    /* ============================================
+       Particles (Decorative)
+       ============================================ */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(25, 118, 210, 0.3);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .particle-1 { top: 20%; left: 10%; animation: particleFloat 15s ease-in-out infinite; }
+    .particle-2 { top: 60%; right: 15%; animation: particleFloat 18s ease-in-out infinite 2s; }
+    .particle-3 { top: 40%; left: 80%; animation: particleFloat 20s ease-in-out infinite 4s; }
+    .particle-4 { bottom: 20%; left: 30%; animation: particleFloat 16s ease-in-out infinite 1s; }
+    .particle-5 { top: 80%; right: 40%; animation: particleFloat 22s ease-in-out infinite 3s; }
+
+    @keyframes particleFloat {
+      0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+      25% { transform: translate(20px, -30px); opacity: 0.6; }
+      50% { transform: translate(-10px, -50px); opacity: 0.3; }
+      75% { transform: translate(30px, -20px); opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-page">
+    <!-- Grid Pattern -->
+    <div class="grid-pattern"></div>
+    
+    <!-- Decorative Particles -->
+    <div class="particle particle-1"></div>
+    <div class="particle particle-2"></div>
+    <div class="particle particle-3"></div>
+    <div class="particle particle-4"></div>
+    <div class="particle particle-5"></div>
+
+    <div class="login-container">
+      
+      <!-- Login Card -->
+      <div class="login-card">
+        
+        <!-- Card Header -->
+        <div class="login-header">
+          <div class="login-logo-wrapper">
+            <div class="login-logo-ring"></div>
+            <div class="login-logo">🚚</div>
+          </div>
+          
+          <h1 class="login-brand-name">X-BRAND SYSTEM</h1>
+          <div class="login-system-name">Shipment Management System</div>
+          <div class="login-divider"></div>
+          <p class="login-subtitle">تسجيل الدخول للموظفين والمسؤولين</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="login-form-wrapper">
+          
+          <!-- Error Message -->
+          <div class="login-error" id="loginError">
+            <span class="login-error-icon">⚠️</span>
+            <span id="loginErrorText">اسم المستخدم أو كلمة المرور غير صحيحة</span>
+          </div>
+
+          <form class="login-form" id="loginForm" onsubmit="return false;">
+            
+            <!-- Username -->
+            <div class="form-group">
+              <label class="form-label">اسم المستخدم</label>
+              <div class="form-input-wrapper">
+                <input 
+                  type="text" 
+                  id="username" 
+                  name="username" 
+                  class="form-input" 
+                  placeholder="أدخل اسم المستخدم"
+                  autocomplete="username"
+                  required
+                >
+                <span class="form-input-icon">👤</span>
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+              <label class="form-label">كلمة المرور</label>
+              <div class="form-input-wrapper">
+                <input 
+                  type="password" 
+                  id="password" 
+                  name="password" 
+                  class="form-input" 
+                  placeholder="أدخل كلمة المرور"
+                  autocomplete="current-password"
+                  required
+                >
+                <span class="form-input-icon">🔒</span>
+                <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePassword()" title="إظهار/إخفاء">
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <!-- Options -->
+            <div class="login-options">
+              <label class="remember-me">
+                <input type="checkbox" id="rememberMe">
+                <span>تذكرني</span>
+              </label>
+              <a href="javascript:void(0)" class="forgot-password" onclick="showForgotPassword()">نسيت كلمة المرور؟</a>
+            </div>
+
+            <!-- Login Button -->
+            <button type="submit" class="login-btn" id="loginBtn" onclick="handleLogin()">
+              <span class="btn-icon">🔐</span>
+              <span class="btn-text">تسجيل الدخول</span>
+              <span class="btn-spinner"></span>
+            </button>
+
+          </form>
+
+          <!-- Security Badge -->
+          <div class="security-badge">
+            <span class="security-badge-icon">🔒</span>
+            <span class="security-badge-text">اتصال آمن مشفر بـ SHA-256</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="login-footer">
+        <div class="footer-divider"></div>
+        <div class="footer-copyright">نظام إدارة وتتبع الشحنات © جميع الحقوق محفوظة</div>
+        <div class="footer-powered">
+          POWERED BY <span class="developer-name">MOHAMED TAREK</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // Login Functions
+    // ============================================
+    
+    // Toggle Password Visibility
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleBtn = document.getElementById('passwordToggle');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        toggleBtn.textContent = '👁️';
+      }
+    }
+
+    // Handle Login
+    function handleLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('loginError');
+      const errorText = document.getElementById('loginErrorText');
+
+      // Validation
+      if (!username) {
+        showError('يرجى إدخال اسم المستخدم');
+        document.getElementById('username').focus();
+        return;
+      }
+
+      if (!password) {
+        showError('يرجى إدخال كلمة المرور');
+        document.getElementById('password').focus();
+        return;
+      }
+
+      // Show loading
+      loginBtn.classList.add('loading');
+      loginBtn.disabled = true;
+      hideError();
+
+      // API Call
+      fetch('', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login',
+          username: username,
+          password: password
+        })
+      })
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        if (result.success) {
+          // Save token
+          const rememberMe = document.getElementById('rememberMe').checked;
+          if (rememberMe) {
+            localStorage.setItem('appToken', result.data.token);
+          }
+          
+          // Redirect with token
+          window.location.href = '?token=' + result.data.token + '&page=dashboard';
+        } else {
+          showError(result.message || 'اسم المستخدم أو كلمة المرور غير صحيحة');
+          loginBtn.classList.remove('loading');
+          loginBtn.disabled = false;
+        }
+      })
+      .catch(function(error) {
+        showError('خطأ في الاتصال بالخادم، يرجى المحاولة مرة أخرى');
+        console.error('Login error:', error);
+        loginBtn.classList.remove('loading');
+        loginBtn.disabled = false;
+      });
+    }
+
+    // Show Error
+    function showError(message) {
+      const errorDiv = document.getElementById('loginError');
+      const errorText = document.getElementById('loginErrorText');
+      errorText.textContent = message;
+      errorDiv.classList.add('show');
+      
+      // Auto hide after 5 seconds
+      setTimeout(function() {
+        hideError();
+      }, 5000);
+    }
+
+    // Hide Error
+    function hideError() {
+      document.getElementById('loginError').classList.remove('show');
+    }
+
+    // Forgot Password
+    function showForgotPassword() {
+      alert('يرجى التواصل مع مدير النظام لإعادة تعيين كلمة المرور');
+    }
+
+    // Handle Enter Key
+    document.getElementById('password').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+
+    document.getElementById('username').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('password').focus();
+      }
+    });
+
+    // Check for saved token
+    (function() {
+      const savedToken = localStorage.getItem('appToken');
+      if (savedToken) {
+        // Verify token validity
+        fetch('', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'checkSession',
+            token: savedToken
+          })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(result) {
+          if (result.success && result.data && result.data.active) {
+            window.location.href = '?token=' + savedToken + '&page=dashboard';
+          } else {
+            localStorage.removeItem('appToken');
+          }
+        })
+        .catch(function() {
+          localStorage.removeItem('appToken');
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>
