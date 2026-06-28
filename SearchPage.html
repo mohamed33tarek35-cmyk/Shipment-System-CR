@@ -1,0 +1,548 @@
+<!-- ============================================
+     SearchPage.html - صفحة البحث المتقدم
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+  
+  <!-- Page Header -->
+  <div style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">البحث المتقدم</h1>
+    <p style="font-size: 14px; color: #757575;">بحث متقدم في جميع الشحنات مع فلاتر متعددة</p>
+  </div>
+
+  <!-- Quick Search -->
+  <div class="search-bar" style="margin-bottom: 20px;">
+    <input type="text" 
+           id="quickSearchInput" 
+           class="search-input" 
+           placeholder="بحث سريع في جميع الحقول..."
+           onkeydown="if(event.key==='Enter') performQuickSearch()">
+    <button class="search-btn" onclick="performQuickSearch()">🔍</button>
+  </div>
+
+  <!-- Advanced Filters -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header" style="cursor: pointer;" onclick="toggleAdvancedFilters()">
+      <span class="card-title">الفلاتر المتقدمة</span>
+      <span id="filterToggleIcon" style="font-size: 18px; color: #757575;">▼</span>
+    </div>
+    <div class="card-body" id="advancedFiltersBody">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        
+        <!-- Basic Info -->
+        <div class="form-group">
+          <label class="form-label">رقم التتبع</label>
+          <input type="text" id="searchTrackingNumber" class="form-input" placeholder="رقم التتبع">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">رقم الطلب</label>
+          <input type="text" id="searchOrderCode" class="form-input" placeholder="رقم الطلب">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">اسم العميل</label>
+          <input type="text" id="searchCustomerName" class="form-input" placeholder="اسم العميل">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">رقم الهاتف</label>
+          <input type="tel" id="searchPhone" class="form-input" placeholder="رقم الهاتف">
+        </div>
+        
+        <!-- Location -->
+        <div class="form-group">
+          <label class="form-label">المحافظة</label>
+          <select id="searchGovernorate" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">المدينة</label>
+          <select id="searchCity" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">الفرع</label>
+          <select id="searchBranch" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        
+        <!-- Product & Status -->
+        <div class="form-group">
+          <label class="form-label">المنتج</label>
+          <input type="text" id="searchProductName" class="form-input" placeholder="اسم المنتج">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">الحالة</label>
+          <select id="searchStatus" class="form-select">
+            <option value="all">الكل</option>
+            <option value="غير موزعة">غير موزعة</option>
+            <option value="جاهز للاستلام">جاهز للاستلام</option>
+            <option value="تم التسليم">تم التسليم</option>
+            <option value="لا يرد">لا يرد</option>
+            <option value="مؤجل">مؤجل</option>
+            <option value="مرتجع">مرتجع</option>
+            <option value="رفض بسبب الخامة">رفض بسبب الخامة</option>
+            <option value="رفض بسبب التأخير">رفض بسبب التأخير</option>
+            <option value="مغلق">مغلق</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">الأولوية</label>
+          <select id="searchPriority" class="form-select">
+            <option value="all">الكل</option>
+            <option value="منخفض">منخفض</option>
+            <option value="عادي">عادي</option>
+            <option value="عالي">عالي</option>
+            <option value="عاجل">عاجل</option>
+          </select>
+        </div>
+        
+        <!-- Employee (Admin only) -->
+        <div class="form-group" id="searchEmployeeGroup" style="display: none;" data-perm="VIEW_ALL_SHIPMENTS">
+          <label class="form-label">الموظف</label>
+          <select id="searchEmployee" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        
+        <!-- Price Range -->
+        <div class="form-group">
+          <label class="form-label">السعر من</label>
+          <input type="number" id="searchMinPrice" class="form-input" placeholder="0" min="0">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">السعر إلى</label>
+          <input type="number" id="searchMaxPrice" class="form-input" placeholder="∞" min="0">
+        </div>
+        
+        <!-- Date Range -->
+        <div class="form-group">
+          <label class="form-label">تاريخ الإنشاء من</label>
+          <input type="date" id="searchDateFrom" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">تاريخ الإنشاء إلى</label>
+          <input type="date" id="searchDateTo" class="form-input">
+        </div>
+        
+        <!-- Follow Up -->
+        <div class="form-group">
+          <label class="form-label">لم تُحدث منذ (ساعات)</label>
+          <input type="number" id="searchLastFollowUp" class="form-input" placeholder="مثال: 24">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">عدد "لا يرد" أكثر من</label>
+          <input type="number" id="searchNoAnswerCount" class="form-input" placeholder="مثال: 3" min="0">
+        </div>
+        
+      </div>
+      
+      <!-- Sort & Actions -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <label class="form-label" style="margin: 0;">الترتيب:</label>
+          <select id="searchSortBy" class="form-select" style="width: auto; min-width: 140px;">
+            <option value="UpdatedAt">آخر تحديث</option>
+            <option value="CreatedAt">تاريخ الإنشاء</option>
+            <option value="Price">السعر</option>
+            <option value="CustomerName">اسم العميل</option>
+            <option value="TrackingNumber">رقم التتبع</option>
+          </select>
+          <select id="searchSortOrder" class="form-select" style="width: auto;">
+            <option value="desc">تنازلي</option>
+            <option value="asc">تصاعدي</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="resetSearchFilters()">إعادة تعيين</button>
+          <button class="btn btn-primary" onclick="performAdvancedSearch()">🔍 بحث</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="card-title">نتائج البحث</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-sm btn-outline" onclick="exportSearchResults()" id="exportSearchBtn" style="display: none;">
+          <span>📥</span>
+          <span>تصدير</span>
+        </button>
+      </div>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="searchResultsTable">
+          <thead>
+            <tr>
+              <th>رقم التتبع</th>
+              <th>العميل</th>
+              <th>الهاتف</th>
+              <th>المحافظة</th>
+              <th>المنتج</th>
+              <th>السعر</th>
+              <th>الحالة</th>
+              <th>الأولوية</th>
+              <th>الموظف</th>
+              <th>تاريخ الإنشاء</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="searchResultsBody">
+            <tr>
+              <td colspan="11" style="text-align: center; padding: 40px; color: #999;">
+                استخدم الفلاتر أعلاه للبحث في الشحنات
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="searchResultsCount" style="font-size: 13px; color: #757575;">0 نتيجة</span>
+      <div id="searchPagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// Search Page Scripts
+// ============================================
+
+let currentSearchPage = 1;
+let lastSearchParams = {};
+
+function initSearch() {
+  // إظهار فلتر الموظفين للـ Admin
+  document.querySelectorAll('[data-perm]').forEach(function(el) {
+    const perm = el.getAttribute('data-perm');
+    if (App.hasPermission(perm)) {
+      el.style.display = '';
+    }
+  });
+  
+  loadFilterOptions();
+}
+
+// ============================================
+// Filter Options
+// ============================================
+
+function loadFilterOptions() {
+  App.showLoading();
+  
+  App.api('getSettings', {})
+    .then(function() {
+      // تحميل المحافظات
+      const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحر الأحمر',
+        'البحيرة', 'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية',
+        'المنيا', 'القليوبية', 'الوادي الجديد', 'السويس', 'اسوان',
+        'اسيوط', 'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية',
+        'جنوب سيناء', 'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا',
+        'شمال سيناء', 'سوهاج'];
+      
+      const govSelect = document.getElementById('searchGovernorate');
+      governorates.forEach(function(g) {
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.textContent = g;
+        govSelect.appendChild(opt);
+      });
+      
+      // تحميل الموظفين
+      if (App.hasPermission('VIEW_ALL_SHIPMENTS')) {
+        App.api('getEmployees', {})
+          .then(function(result) {
+            const empSelect = document.getElementById('searchEmployee');
+            if (empSelect && result.data) {
+              result.data.forEach(function(emp) {
+                const opt = document.createElement('option');
+                opt.value = emp.ID;
+                opt.textContent = emp.Name || emp.Username;
+                empSelect.appendChild(opt);
+              });
+            }
+          });
+      }
+      
+      App.hideLoading();
+    })
+    .catch(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Toggle Filters
+// ============================================
+
+function toggleAdvancedFilters() {
+  const body = document.getElementById('advancedFiltersBody');
+  const icon = document.getElementById('filterToggleIcon');
+  
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    icon.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    icon.textContent = '◀';
+  }
+}
+
+// ============================================
+// Quick Search
+// ============================================
+
+function performQuickSearch() {
+  const query = document.getElementById('quickSearchInput').value.trim();
+  if (!query) {
+    App.toast('يرجى إدخال نص للبحث', 'warning');
+    return;
+  }
+  
+  lastSearchParams = { query: query };
+  performSearch(lastSearchParams, 1);
+}
+
+// ============================================
+// Advanced Search
+// ============================================
+
+function performAdvancedSearch() {
+  const params = {
+    trackingNumber: document.getElementById('searchTrackingNumber').value.trim(),
+    orderCode: document.getElementById('searchOrderCode').value.trim(),
+    customerName: document.getElementById('searchCustomerName').value.trim(),
+    phone: document.getElementById('searchPhone').value.trim(),
+    governorate: document.getElementById('searchGovernorate').value,
+    city: document.getElementById('searchCity').value,
+    branch: document.getElementById('searchBranch').value,
+    productName: document.getElementById('searchProductName').value.trim(),
+    status: document.getElementById('searchStatus').value,
+    priority: document.getElementById('searchPriority').value,
+    assignedEmployee: document.getElementById('searchEmployee').value,
+    minPrice: document.getElementById('searchMinPrice').value,
+    maxPrice: document.getElementById('searchMaxPrice').value,
+    dateFrom: document.getElementById('searchDateFrom').value,
+    dateTo: document.getElementById('searchDateTo').value,
+    lastFollowUp: document.getElementById('searchLastFollowUp').value,
+    noAnswerCount: document.getElementById('searchNoAnswerCount').value,
+    sortBy: document.getElementById('searchSortBy').value,
+    sortOrder: document.getElementById('searchSortOrder').value
+  };
+  
+  // إزالة القيم الفارغة
+  Object.keys(params).forEach(function(key) {
+    if (params[key] === '' || params[key] === 'all') {
+      delete params[key];
+    }
+  });
+  
+  lastSearchParams = params;
+  performSearch(params, 1);
+}
+
+function performSearch(params, page) {
+  page = page || 1;
+  currentSearchPage = page;
+  
+  App.showLoading();
+  
+  App.api('searchShipments', { 
+    query: params.query || '',
+    filters: params,
+    page: page,
+    pageSize: 20
+  })
+    .then(function(result) {
+      renderSearchResults(result.data.shipments);
+      renderSearchPagination(result.data.pagination);
+      document.getElementById('searchResultsCount').textContent = 
+        (result.data.totalResults || 0) + ' نتيجة';
+      
+      // إظهار زر التصدير إذا وجدت نتائج
+      document.getElementById('exportSearchBtn').style.display = 
+        (result.data.shipments && result.data.shipments.length > 0) ? '' : 'none';
+      
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في البحث', 'error');
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Render Results
+// ============================================
+
+function renderSearchResults(shipments) {
+  const tbody = document.getElementById('searchResultsBody');
+  if (!tbody) return;
+  
+  if (!shipments || shipments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#999;">لا توجد نتائج</td></tr>';
+    return;
+  }
+  
+  const statusClassMap = {
+    'غير موزعة': 'unassigned',
+    'جاهز للاستلام': 'ready',
+    'تم التسليم': 'delivered',
+    'لا يرد': 'no-answer',
+    'مؤجل': 'postponed',
+    'مرتجع': 'returned',
+    'رفض بسبب الخامة': 'rejected-quality',
+    'رفض بسبب التأخير': 'rejected-delay',
+    'مغلق': 'closed'
+  };
+  
+  const priorityClassMap = {
+    'منخفض': 'low',
+    'عادي': 'normal',
+    'عالي': 'high',
+    'عاجل': 'urgent'
+  };
+  
+  tbody.innerHTML = shipments.map(function(s) {
+    const statusClass = statusClassMap[s.status] || '';
+    const priorityClass = priorityClassMap[s.priority] || '';
+    
+    return '<tr>' +
+      '<td><strong>#' + App.escapeHtml(s.trackingNumber) + '</strong></td>' +
+      '<td>' + App.escapeHtml(s.customerName) + '</td>' +
+      '<td dir="ltr" style="text-align:right;">' + App.escapeHtml(s.phone) + '</td>' +
+      '<td>' + App.escapeHtml(s.governorate) + '</td>' +
+      '<td>' + App.escapeHtml(s.productName) + '</td>' +
+      '<td>' + App.formatCurrency(s.price) + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + App.escapeHtml(s.status) + '</span></td>' +
+      '<td><span class="priority-badge ' + priorityClass + '">' + App.escapeHtml(s.priority) + '</span></td>' +
+      '<td>' + (s.assignedEmployeeName || '<span style="color:#999;">غير موزعة</span>') + '</td>' +
+      '<td style="font-size:12px;color:#999;">' + App.formatDate(s.createdAt) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-outline" onclick="viewSearchResult(\'' + s.id + '\')" title="عرض">👁️</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderSearchPagination(pagination) {
+  const container = document.getElementById('searchPagination');
+  if (!container || !pagination || pagination.totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let html = '<div class="pagination">';
+  
+  html += '<button class="pagination-btn" ' + (pagination.hasPrev ? '' : 'disabled') + 
+          ' onclick="performSearch(lastSearchParams, ' + (pagination.currentPage - 1) + ')">›</button>';
+  
+  const startPage = Math.max(1, pagination.currentPage - 2);
+  const endPage = Math.min(pagination.totalPages, startPage + 4);
+  
+  for (let i = startPage; i <= endPage; i++) {
+    html += '<button class="pagination-btn ' + (i === pagination.currentPage ? 'active' : '') + 
+            '" onclick="performSearch(lastSearchParams, ' + i + ')">' + i + '</button>';
+  }
+  
+  html += '<button class="pagination-btn" ' + (pagination.hasNext ? '' : 'disabled') + 
+          ' onclick="performSearch(lastSearchParams, ' + (pagination.currentPage + 1) + ')">‹</button>';
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ============================================
+// Reset & Export
+// ============================================
+
+function resetSearchFilters() {
+  document.getElementById('searchTrackingNumber').value = '';
+  document.getElementById('searchOrderCode').value = '';
+  document.getElementById('searchCustomerName').value = '';
+  document.getElementById('searchPhone').value = '';
+  document.getElementById('searchGovernorate').value = 'all';
+  document.getElementById('searchCity').value = 'all';
+  document.getElementById('searchBranch').value = 'all';
+  document.getElementById('searchProductName').value = '';
+  document.getElementById('searchStatus').value = 'all';
+  document.getElementById('searchPriority').value = 'all';
+  document.getElementById('searchEmployee').value = 'all';
+  document.getElementById('searchMinPrice').value = '';
+  document.getElementById('searchMaxPrice').value = '';
+  document.getElementById('searchDateFrom').value = '';
+  document.getElementById('searchDateTo').value = '';
+  document.getElementById('searchLastFollowUp').value = '';
+  document.getElementById('searchNoAnswerCount').value = '';
+  document.getElementById('searchSortBy').value = 'UpdatedAt';
+  document.getElementById('searchSortOrder').value = 'desc';
+  document.getElementById('quickSearchInput').value = '';
+  
+  lastSearchParams = {};
+  currentSearchPage = 1;
+  
+  document.getElementById('searchResultsBody').innerHTML = 
+    '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">استخدم الفلاتر أعلاه للبحث في الشحنات</td></tr>';
+  document.getElementById('searchResultsCount').textContent = '0 نتيجة';
+  document.getElementById('searchPagination').innerHTML = '';
+  document.getElementById('exportSearchBtn').style.display = 'none';
+}
+
+function exportSearchResults() {
+  if (!lastSearchParams || Object.keys(lastSearchParams).length === 0) {
+    App.toast('يرجى إجراء بحث أولاً', 'warning');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('exportReport', { filters: lastSearchParams })
+    .then(function(result) {
+      const data = result.data;
+      if (data && data.content) {
+        // إنشاء ملف CSV للتنزيل
+        const blob = new Blob(['\ufeff' + data.content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = data.filename || 'search_results.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        App.toast('تم تصدير النتائج بنجاح', 'success');
+      } else {
+        App.toast('لا توجد بيانات للتصدير', 'warning');
+      }
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تصدير النتائج', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// View Result
+// ============================================
+
+function viewSearchResult(id) {
+  sessionStorage.setItem('currentShipment', id);
+  App.navigate('shipment-detail');
+}
+</script>
