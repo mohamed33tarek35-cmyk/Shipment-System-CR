@@ -1,0 +1,441 @@
+<!-- ============================================
+     ReportsPage.html - صفحة التقارير
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">التقارير</h1>
+      <p style="font-size: 14px; color: #757575;">تقارير وإحصائيات أداء الشحنات والموظفين</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" onclick="exportCurrentReport()">
+        <span>📥</span>
+        <span>تصدير التقرير</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Report Filters -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <span class="card-title">فلاتر التقرير</span>
+    </div>
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">نوع التقرير</label>
+          <select id="reportType" class="form-select" onchange="onReportTypeChange()">
+            <option value="SHIPMENT_STATUS">توزيع حالات الشحنات</option>
+            <option value="EMPLOYEE_PERFORMANCE">أداء الموظفين</option>
+            <option value="DAILY_SUMMARY">ملخص يومي</option>
+            <option value="GOVERNORATE_STATS">إحصائيات المحافظات</option>
+            <option value="PRODUCT_STATS">إحصائيات المنتجات</option>
+            <option value="DELIVERY_RATE">معدل التسليم</option>
+            <option value="NO_ANSWER">تحليل "لا يرد"</option>
+            <option value="FINANCIAL">التقرير المالي</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">من تاريخ</label>
+          <input type="date" id="reportDateFrom" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">إلى تاريخ</label>
+          <input type="date" id="reportDateTo" class="form-input">
+        </div>
+        <div class="form-group" id="reportEmployeeGroup" style="display: none;">
+          <label class="form-label">الموظف</label>
+          <select id="reportEmployee" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        <div class="form-group" id="reportGovernorateGroup">
+          <label class="form-label">المحافظة</label>
+          <select id="reportGovernorate" class="form-select">
+            <option value="all">الكل</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top: 16px;">
+        <button class="btn btn-primary" onclick="generateReport()">
+          <span>📊</span>
+          <span>إنشاء التقرير</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-4" style="margin-bottom: 24px;" id="reportStatsGrid">
+    <!-- يتم ملؤها ديناميكياً -->
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+
+    <!-- Main Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" id="mainChartTitle">الرسم البياني الرئيسي</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 320px;">
+          <canvas id="mainReportChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" id="secondaryChartTitle">الرسم البياني الثانوي</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 320px;">
+          <canvas id="secondaryReportChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Data Table -->
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="card-title" id="reportTableTitle">بيانات التقرير</span>
+      <span id="reportTotalCount" style="font-size: 13px; color: #757575;"></span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="reportDataTable">
+          <thead id="reportTableHead">
+            <!-- يتم ملؤها ديناميكياً -->
+          </thead>
+          <tbody id="reportTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="reportFooterInfo" style="font-size: 13px; color: #757575;"></span>
+      <div id="reportPagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// Reports Page Scripts
+// ============================================
+
+let currentReportType = 'SHIPMENT_STATUS';
+let currentReportData = null;
+let currentReportPage = 1;
+
+function initReports() {
+  // تعيين التواريخ الافتراضية
+  const today = new Date();
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+  document.getElementById('reportDateTo').value = today.toISOString().split('T')[0];
+  document.getElementById('reportDateFrom').value = lastMonth.toISOString().split('T')[0];
+
+  // تحميل الفلاتر
+  loadReportFilterOptions();
+
+  // إنشاء التقرير الافتراضي
+  generateReport();
+}
+
+function loadReportFilterOptions() {
+  // تحميل المحافظات
+  const govSelect = document.getElementById('reportGovernorate');
+  const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحر الأحمر',
+    'البحيرة', 'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية',
+    'المنيا', 'القليوبية', 'الوادي الجديد', 'السويس', 'اسوان',
+    'اسيوط', 'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية',
+    'جنوب سيناء', 'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا',
+    'شمال سيناء', 'سوهاج'];
+
+  governorates.forEach(function(g) {
+    const opt = document.createElement('option');
+    opt.value = g;
+    opt.textContent = g;
+    govSelect.appendChild(opt);
+  });
+
+  // تحميل الموظفين
+  App.api('getEmployees', {})
+    .then(function(result) {
+      const empSelect = document.getElementById('reportEmployee');
+      if (empSelect && result.data) {
+        result.data.forEach(function(emp) {
+          const opt = document.createElement('option');
+          opt.value = emp.ID;
+          opt.textContent = emp.Name || emp.Username;
+          empSelect.appendChild(opt);
+        });
+      }
+    });
+}
+
+function onReportTypeChange() {
+  currentReportType = document.getElementById('reportType').value;
+
+  // إظهار/إخفاء فلتر الموظف
+  const empGroup = document.getElementById('reportEmployeeGroup');
+  if (currentReportType === 'EMPLOYEE_PERFORMANCE') {
+    empGroup.style.display = '';
+  } else {
+    empGroup.style.display = 'none';
+  }
+}
+
+function generateReport() {
+  currentReportPage = 1;
+
+  const params = {
+    reportType: currentReportType,
+    dateFrom: document.getElementById('reportDateFrom').value,
+    dateTo: document.getElementById('reportDateTo').value,
+    governorate: document.getElementById('reportGovernorate').value,
+    employee: document.getElementById('reportEmployee').value
+  };
+
+  App.showLoading();
+
+  App.api('generateReport', params)
+    .then(function(result) {
+      currentReportData = result.data;
+      renderReport(result.data);
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إنشاء التقرير', 'error');
+      App.hideLoading();
+    });
+}
+
+function renderReport(data) {
+  if (!data) return;
+
+  // Render stats
+  renderReportStats(data.stats);
+
+  // Render charts
+  renderReportCharts(data);
+
+  // Render table
+  renderReportTable(data);
+}
+
+function renderReportStats(stats) {
+  const grid = document.getElementById('reportStatsGrid');
+  if (!grid || !stats) return;
+
+  const reportTypeLabels = {
+    'SHIPMENT_STATUS': 'إجمالي الشحنات',
+    'EMPLOYEE_PERFORMANCE': 'إجمالي الموظفين',
+    'DAILY_SUMMARY': 'إجمالي الأيام',
+    'GOVERNORATE_STATS': 'إجمالي المحافظات',
+    'PRODUCT_STATS': 'إجمالي المنتجات',
+    'DELIVERY_RATE': 'معدل التسليم',
+    'NO_ANSWER': 'إجمالي "لا يرد"',
+    'FINANCIAL': 'إجمالي القيمة'
+  };
+
+  const cards = [
+    {
+      icon: '📦',
+      iconClass: 'blue',
+      value: stats.total || 0,
+      label: reportTypeLabels[currentReportType] || 'إجمالي'
+    },
+    {
+      icon: '✅',
+      iconClass: 'green',
+      value: stats.delivered || 0,
+      label: 'تم التسليم'
+    },
+    {
+      icon: '⚠️',
+      iconClass: 'orange',
+      value: stats.pending || 0,
+      label: 'معلق'
+    },
+    {
+      icon: '💰',
+      iconClass: 'purple',
+      value: App.formatCurrency(stats.totalValue || 0),
+      label: 'القيمة'
+    }
+  ];
+
+  grid.innerHTML = cards.map(function(card) {
+    return '<div class="stat-card">' +
+      '<div class="stat-icon ' + card.iconClass + '">' + card.icon + '</div>' +
+      '<div class="stat-info">' +
+        '<div class="stat-value">' + card.value + '</div>' +
+        '<div class="stat-label">' + card.label + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderReportCharts(data) {
+  const chartConfigs = {
+    'SHIPMENT_STATUS': {
+      mainTitle: 'توزيع حالات الشحنات',
+      secondaryTitle: 'الشحنات حسب الأولوية',
+      mainType: 'pie',
+      secondaryType: 'bar'
+    },
+    'EMPLOYEE_PERFORMANCE': {
+      mainTitle: 'أداء الموظفين',
+      secondaryTitle: 'الشحنات المسلمة لكل موظف',
+      mainType: 'bar',
+      secondaryType: 'bar'
+    },
+    'DAILY_SUMMARY': {
+      mainTitle: 'الشحنات اليومية',
+      secondaryTitle: 'الشحنات المسلمة يومياً',
+      mainType: 'line',
+      secondaryType: 'line'
+    },
+    'GOVERNORATE_STATS': {
+      mainTitle: 'الشحنات حسب المحافظة',
+      secondaryTitle: 'معدل التسليم حسب المحافظة',
+      mainType: 'bar',
+      secondaryType: 'bar'
+    },
+    'PRODUCT_STATS': {
+      mainTitle: 'الشحنات حسب المنتج',
+      secondaryTitle: 'القيمة حسب المنتج',
+      mainType: 'bar',
+      secondaryType: 'bar'
+    },
+    'DELIVERY_RATE': {
+      mainTitle: 'معدل التسليم',
+      secondaryTitle: 'الشحنات المسلمة vs المعلقة',
+      mainType: 'pie',
+      secondaryType: 'bar'
+    },
+    'NO_ANSWER': {
+      mainTitle: 'تحليل "لا يرد"',
+      secondaryTitle: 'عدد مرات "لا يرد"',
+      mainType: 'bar',
+      secondaryType: 'line'
+    },
+    'FINANCIAL': {
+      mainTitle: 'القيمة الإجمالية',
+      secondaryTitle: 'القيمة المسلمة',
+      mainType: 'bar',
+      secondaryType: 'line'
+    }
+  };
+
+  const config = chartConfigs[currentReportType] || chartConfigs['SHIPMENT_STATUS'];
+
+  document.getElementById('mainChartTitle').textContent = config.mainTitle;
+  document.getElementById('secondaryChartTitle').textContent = config.secondaryTitle;
+
+  // Main chart
+  if (data.mainChartData && data.mainChartData.length > 0) {
+    if (config.mainType === 'pie') {
+      App.drawPieChart('mainReportChart', data.mainChartData);
+    } else if (config.mainType === 'line') {
+      App.drawLineChart('mainReportChart', data.mainChartData);
+    } else {
+      App.drawBarChart('mainReportChart', data.mainChartData);
+    }
+  } else {
+    document.getElementById('mainReportChart').parentElement.innerHTML = 
+      '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-title">لا توجد بيانات</div></div>';
+  }
+
+  // Secondary chart
+  if (data.secondaryChartData && data.secondaryChartData.length > 0) {
+    if (config.secondaryType === 'pie') {
+      App.drawPieChart('secondaryReportChart', data.secondaryChartData);
+    } else if (config.secondaryType === 'line') {
+      App.drawLineChart('secondaryReportChart', data.secondaryChartData);
+    } else {
+      App.drawBarChart('secondaryReportChart', data.secondaryChartData);
+    }
+  } else {
+    document.getElementById('secondaryReportChart').parentElement.innerHTML = 
+      '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-title">لا توجد بيانات</div></div>';
+  }
+}
+
+function renderReportTable(data) {
+  const thead = document.getElementById('reportTableHead');
+  const tbody = document.getElementById('reportTableBody');
+
+  if (!data.tableData || data.tableData.length === 0) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '<tr><td style="text-align:center;padding:40px;color:#999;">لا توجد بيانات</td></tr>';
+    document.getElementById('reportTotalCount').textContent = '';
+    return;
+  }
+
+  // Headers
+  const headers = data.tableHeaders || Object.keys(data.tableData[0]);
+  thead.innerHTML = '<tr>' + headers.map(function(h) {
+    return '<th>' + App.escapeHtml(h.label || h) + '</th>';
+  }).join('') + '</tr>';
+
+  // Rows
+  tbody.innerHTML = data.tableData.map(function(row) {
+    return '<tr>' + headers.map(function(h) {
+      const key = typeof h === 'string' ? h : h.key;
+      const value = row[key] || '';
+      const formatter = h.formatter;
+      return '<td>' + (formatter ? formatter(value, row) : App.escapeHtml(value)) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  document.getElementById('reportTotalCount').textContent = data.tableData.length + ' سجل';
+}
+
+function exportCurrentReport() {
+  if (!currentReportData) {
+    App.toast('يرجى إنشاء تقرير أولاً', 'warning');
+    return;
+  }
+
+  App.showLoading();
+
+  App.api('exportReport', {
+    reportType: currentReportType,
+    dateFrom: document.getElementById('reportDateFrom').value,
+    dateTo: document.getElementById('reportDateTo').value,
+    governorate: document.getElementById('reportGovernorate').value
+  })
+    .then(function(result) {
+      const data = result.data;
+      if (data && data.content) {
+        const blob = new Blob(['\ufeff' + data.content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = data.filename || 'report.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+
+        App.toast('تم تصدير التقرير بنجاح', 'success');
+      }
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تصدير التقرير', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+</script>
