@@ -1,0 +1,143 @@
+<!-- ============================================
+     Sidebar.html - الشريط الجانبي
+     ============================================ -->
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <span>🚚</span>
+    </div>
+    <span class="sidebar-title">نظام الشحنات</span>
+    <button class="sidebar-toggle" id="sidebarToggle" title="طي/توسيع">
+      <span id="sidebarToggleIcon">◀</span>
+    </button>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <ul class="sidebar-menu" id="sidebarMenu">
+      
+      <!-- لوحة التحكم - للجميع -->
+      <li class="sidebar-menu-item">
+        <a href="javascript:void(0)" class="sidebar-menu-link active" data-page="dashboard" onclick="App.navigate('dashboard')">
+          <span class="sidebar-menu-icon">📊</span>
+          <span class="sidebar-menu-text">لوحة التحكم</span>
+        </a>
+      </li>
+      
+      <!-- الشحنات - للجميع -->
+      <li class="sidebar-menu-item">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="shipments" onclick="App.navigate('shipments')">
+          <span class="sidebar-menu-icon">📦</span>
+          <span class="sidebar-menu-text">الشحنات</span>
+        </a>
+      </li>
+      
+      <!-- توزيع الشحنات - Admin, Team Leader, Senior CS -->
+      <li class="sidebar-menu-item" data-perm="ASSIGN_SHIPMENT" style="display:none;">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="assign" onclick="App.navigate('assign')">
+          <span class="sidebar-menu-icon">🔄</span>
+          <span class="sidebar-menu-text">توزيع الشحنات</span>
+        </a>
+      </li>
+      
+      <!-- البحث - للجميع -->
+      <li class="sidebar-menu-item">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="search" onclick="App.navigate('search')">
+          <span class="sidebar-menu-icon">🔍</span>
+          <span class="sidebar-menu-text">البحث</span>
+        </a>
+      </li>
+      
+      <!-- التقارير - Admin, Team Leader, Senior CS -->
+      <li class="sidebar-menu-item" data-perm="VIEW_REPORTS" style="display:none;">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="reports" onclick="App.navigate('reports')">
+          <span class="sidebar-menu-icon">📈</span>
+          <span class="sidebar-menu-text">التقارير</span>
+        </a>
+      </li>
+      
+      <!-- الموظفين - Admin, Team Leader -->
+      <li class="sidebar-menu-item" data-perm="VIEW_EMPLOYEES" style="display:none;">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="employees" onclick="App.navigate('employees')">
+          <span class="sidebar-menu-icon">👥</span>
+          <span class="sidebar-menu-text">الموظفين</span>
+        </a>
+      </li>
+      
+      <!-- السجل - Admin, Team Leader, Senior CS -->
+      <li class="sidebar-menu-item" data-perm="VIEW_HISTORY" style="display:none;">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="history" onclick="App.navigate('history')">
+          <span class="sidebar-menu-icon">📋</span>
+          <span class="sidebar-menu-text">سجل العمليات</span>
+        </a>
+      </li>
+      
+      <!-- الإعدادات - Admin فقط -->
+      <li class="sidebar-menu-item" data-perm="MANAGE_SETTINGS" style="display:none;">
+        <a href="javascript:void(0)" class="sidebar-menu-link" data-page="settings" onclick="App.navigate('settings')">
+          <span class="sidebar-menu-icon">⚙️</span>
+          <span class="sidebar-menu-text">الإعدادات</span>
+        </a>
+      </li>
+      
+    </ul>
+  </nav>
+  
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar" id="sidebarUserAvatar">
+        <span id="sidebarUserInitial">👤</span>
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebarUserName">...</div>
+        <div class="sidebar-user-role" id="sidebarUserRole">...</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<script>
+// تهيئة Sidebar بعد تحميل الصفحة
+(function() {
+  function initSidebarUser() {
+    const user = App.user;
+    if (!user) return;
+    
+    // تحديث اسم المستخدم
+    const nameEl = document.getElementById('sidebarUserName');
+    const roleEl = document.getElementById('sidebarUserRole');
+    const initialEl = document.getElementById('sidebarUserInitial');
+    
+    if (nameEl) nameEl.textContent = user.name || user.username || 'مستخدم';
+    if (roleEl) {
+      const roles = {
+        'SYSTEM_ADMIN': 'مدير النظام',
+        'TEAM_LEADER': 'رئيس الفريق',
+        'SENIOR_CS': 'موظف أول',
+        'EMPLOYEE': 'موظف'
+      };
+      roleEl.textContent = roles[user.role] || user.role;
+    }
+    if (initialEl) {
+      initialEl.textContent = (user.name || user.username || 'U').charAt(0).toUpperCase();
+    }
+    
+    // إظهار/إخفاء عناصر القائمة حسب الصلاحيات
+    document.querySelectorAll('[data-perm]').forEach(function(item) {
+      const perm = item.getAttribute('data-perm');
+      if (App.hasPermission(perm)) {
+        item.style.display = '';
+      }
+    });
+  }
+  
+  // تنفيذ بعد تهيئة App
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(initSidebarUser, 100);
+    });
+  } else {
+    setTimeout(initSidebarUser, 100);
+  }
+})();
+</script>
