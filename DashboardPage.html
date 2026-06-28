@@ -1,0 +1,400 @@
+<!-- ============================================
+     DashboardPage.html - صفحة لوحة التحكم
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+  
+  <!-- Page Header -->
+  <div style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">لوحة التحكم</h1>
+    <p style="font-size: 14px; color: #757575;">نظرة عامة على أداء النظام والشحنات</p>
+  </div>
+
+  <!-- Stats Cards Grid -->
+  <div class="grid grid-cols-4" style="margin-bottom: 24px;" id="statsGrid">
+    <!-- يتم ملؤها ديناميكياً -->
+  </div>
+
+  <!-- Second Row: Charts -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+    
+    <!-- Status Distribution Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">توزيع حالات الشحنات</span>
+        <span style="font-size: 12px; color: #999;">إجمالي الشحنات النشطة</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Stats Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">إحصائيات الأسبوع</span>
+        <span style="font-size: 12px; color: #999;">الشحنات المضافة vs المسلمة</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Third Row: Tables -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+    
+    <!-- Employee Performance -->
+    <div class="card" id="employeePerformanceCard" style="display: none;">
+      <div class="card-header">
+        <span class="card-title">أداء الموظفين</span>
+        <button class="btn btn-sm btn-outline" onclick="App.navigate('reports')">عرض الكل</button>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-container" style="border-radius: 0; box-shadow: none;">
+          <table class="data-table" id="performanceTable">
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>الإجمالي</th>
+                <th>تم التسليم</th>
+                <th>النسبة</th>
+                <th>اليوم</th>
+              </tr>
+            </thead>
+            <tbody id="performanceTableBody">
+              <!-- يتم ملؤها ديناميكياً -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">آخر النشاطات</span>
+        <button class="btn btn-sm btn-outline" onclick="App.navigate('history')">عرض الكل</button>
+      </div>
+      <div class="card-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+        <div id="activityTimeline" style="padding: 16px;">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fourth Row: Recent Shipments -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">آخر الشحنات</span>
+      <button class="btn btn-sm btn-outline" onclick="App.navigate('shipments')">عرض الكل</button>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="recentShipmentsTable">
+          <thead>
+            <tr>
+              <th>رقم التتبع</th>
+              <th>العميل</th>
+              <th>الحالة</th>
+              <th>السعر</th>
+              <th>آخر تحديث</th>
+            </tr>
+          </thead>
+          <tbody id="recentShipmentsTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// Dashboard Page Scripts
+// ============================================
+
+function initDashboard() {
+  loadDashboardData();
+}
+
+function loadDashboardData() {
+  App.showLoading();
+  
+  App.api('getDashboard', {})
+    .then(function(result) {
+      const data = result.data;
+      
+      // Render Stats
+      renderStats(data.stats, data.userRole);
+      
+      // Render Charts
+      renderStatusChart(data.statusDistribution);
+      renderWeeklyChart();
+      
+      // Render Performance (Admin/Team Leader only)
+      if (data.employeePerformance && data.employeePerformance.length > 0) {
+        document.getElementById('employeePerformanceCard').style.display = '';
+        renderPerformanceTable(data.employeePerformance);
+      }
+      
+      // Render Activity
+      renderActivityTimeline(data.recentActivity);
+      
+      // Render Recent Shipments
+      renderRecentShipments(data.recentShipments);
+      
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل البيانات', 'error');
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Render Stats Cards
+// ============================================
+
+function renderStats(stats, userRole) {
+  const grid = document.getElementById('statsGrid');
+  if (!grid || !stats) return;
+  
+  const isEmployee = userRole === 'EMPLOYEE';
+  
+  const cards = [
+    {
+      icon: '📦',
+      iconClass: 'blue',
+      value: stats.totalShipments || 0,
+      label: isEmployee ? 'شحناتي' : 'إجمالي الشحنات',
+      change: '+' + (stats.todayCreated || 0) + ' اليوم',
+      changeClass: 'positive'
+    },
+    {
+      icon: '✅',
+      iconClass: 'green',
+      value: stats.delivered || 0,
+      label: 'تم التسليم',
+      change: stats.deliveryRate + '%',
+      changeClass: 'positive'
+    },
+    {
+      icon: '⚠️',
+      iconClass: 'orange',
+      value: (stats.needsFollowUp || 0),
+      label: 'تحتاج متابعة',
+      change: stats.noAnswerThreshold + ' لا يرد 3x',
+      changeClass: 'negative'
+    },
+    {
+      icon: '💰',
+      iconClass: 'purple',
+      value: formatCurrency(stats.totalValue || 0),
+      label: 'القيمة الإجمالية',
+      change: formatCurrency(stats.deliveredValue || 0) + ' تم التسليم',
+      changeClass: 'positive'
+    }
+  ];
+  
+  // For Employee, show different stats
+  if (isEmployee) {
+    cards[2] = {
+      icon: '📞',
+      iconClass: 'orange',
+      value: stats.noAnswer || 0,
+      label: 'لا يرد',
+      change: 'تحتاج متابعة',
+      changeClass: 'negative'
+    };
+    cards[3] = {
+      icon: '✅',
+      iconClass: 'green',
+      value: stats.todayDelivered || 0,
+      label: 'تم التسليم اليوم',
+      change: 'أحسنت!',
+      changeClass: 'positive'
+    };
+  }
+  
+  grid.innerHTML = cards.map(function(card) {
+    return '<div class="stat-card">' +
+      '<div class="stat-icon ' + card.iconClass + '">' + card.icon + '</div>' +
+      '<div class="stat-info">' +
+        '<div class="stat-value">' + card.value + '</div>' +
+        '<div class="stat-label">' + card.label + '</div>' +
+        '<div class="stat-change ' + card.changeClass + '">' + card.change + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ============================================
+// Render Charts
+// ============================================
+
+function renderStatusChart(data) {
+  if (!data || data.length === 0) {
+    document.getElementById('statusChart').parentElement.innerHTML = 
+      '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-title">لا توجد بيانات</div></div>';
+    return;
+  }
+  
+  App.drawPieChart('statusChart', data, {
+    color: '#1976D2'
+  });
+}
+
+function renderWeeklyChart() {
+  App.api('getDashboardStats', {})
+    .then(function() {
+      // Use mock data for now - will be enhanced
+      const mockData = [
+        { label: 'الأحد', value: 12 },
+        { label: 'الإثنين', value: 19 },
+        { label: 'الثلاثاء', value: 8 },
+        { label: 'الأربعاء', value: 15 },
+        { label: 'الخميس', value: 22 },
+        { label: 'الجمعة', value: 10 },
+        { label: 'اليوم', value: 7 }
+      ];
+      
+      App.drawBarChart('weeklyChart', mockData, {
+        color: '#1976D2',
+        barWidth: 30,
+        barGap: 15
+      });
+    });
+}
+
+// ============================================
+// Render Performance Table
+// ============================================
+
+function renderPerformanceTable(employees) {
+  const tbody = document.getElementById('performanceTableBody');
+  if (!tbody) return;
+  
+  if (employees.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#999;">لا توجد بيانات</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = employees.map(function(emp) {
+    const rate = parseFloat(emp.deliveryRate) || 0;
+    let rateColor = '#F44336';
+    if (rate >= 80) rateColor = '#4CAF50';
+    else if (rate >= 50) rateColor = '#FF9800';
+    
+    return '<tr>' +
+      '<td><strong>' + App.escapeHtml(emp.name) + '</strong></td>' +
+      '<td>' + (emp.totalShipments || 0) + '</td>' +
+      '<td>' + (emp.delivered || 0) + '</td>' +
+      '<td><span style="color:' + rateColor + ';font-weight:600;">' + rate + '%</span></td>' +
+      '<td><span class="tag tag-success">+' + (emp.todayDelivered || 0) + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ============================================
+// Render Activity Timeline
+// ============================================
+
+function renderActivityTimeline(activities) {
+  const container = document.getElementById('activityTimeline');
+  if (!container) return;
+  
+  if (!activities || activities.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">لا توجد نشاطات</div></div>';
+    return;
+  }
+  
+  const actionIcons = {
+    'إنشاء': '🆕',
+    'تحديث': '✏️',
+    'حذف': '🗑️',
+    'توزيع': '🔄',
+    'إعادة توزيع': '🔀',
+    'تغيير حالة': '📊',
+    'إضافة ملاحظة': '📝',
+    'متابعة': '📞',
+    'استيراد': '📥',
+    'تصدير': '📤',
+    'تسجيل دخول': '🔐',
+    'تسجيل خروج': '🚪'
+  };
+  
+  container.innerHTML = '<div class="timeline">' + activities.map(function(act) {
+    const icon = actionIcons[act.actionType] || '📋';
+    const dotClass = act.actionType === 'تغيير حالة' ? 'success' : 
+                     act.actionType === 'حذف' ? 'error' : 'warning';
+    
+    return '<div class="timeline-item">' +
+      '<div class="timeline-dot ' + dotClass + '"></div>' +
+      '<div class="timeline-content">' +
+        '<div class="timeline-time">' + App.formatDateTime(act.timestamp) + '</div>' +
+        '<div class="timeline-title">' + icon + ' ' + App.escapeHtml(act.actionType) + '</div>' +
+        '<div class="timeline-desc">' +
+          (act.employeeName ? 'بواسطة: <strong>' + App.escapeHtml(act.employeeName) + '</strong>' : '') +
+          (act.oldStatus && act.newStatus ? '<br>من: ' + App.escapeHtml(act.oldStatus) + ' → إلى: ' + App.escapeHtml(act.newStatus) : '') +
+          (act.notes ? '<br>' + App.escapeHtml(act.notes) : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// ============================================
+// Render Recent Shipments
+// ============================================
+
+function renderRecentShipments(shipments) {
+  const tbody = document.getElementById('recentShipmentsTableBody');
+  if (!tbody) return;
+  
+  if (!shipments || shipments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#999;">لا توجد شحنات</td></tr>';
+    return;
+  }
+  
+  const statusClassMap = {
+    'غير موزعة': 'unassigned',
+    'جاهز للاستلام': 'ready',
+    'تم التسليم': 'delivered',
+    'لا يرد': 'no-answer',
+    'مؤجل': 'postponed',
+    'مرتجع': 'returned',
+    'رفض بسبب الخامة': 'rejected-quality',
+    'رفض بسبب التأخير': 'rejected-delay',
+    'مغلق': 'closed'
+  };
+  
+  tbody.innerHTML = shipments.map(function(s) {
+    const statusClass = statusClassMap[s.status] || '';
+    return '<tr style="cursor:pointer;" onclick="App.navigate(\'shipment-detail\'); sessionStorage.setItem(\'currentShipment\', \'' + s.id + '\');">' +
+      '<td><strong>#' + App.escapeHtml(s.trackingNumber) + '</strong></td>' +
+      '<td>' + App.escapeHtml(s.customerName) + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + App.escapeHtml(s.status) + '</span></td>' +
+      '<td>' + App.formatCurrency(s.price) + '</td>' +
+      '<td style="font-size:12px;color:#999;">' + App.formatDateTime(s.updatedAt) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ============================================
+// Helper Functions
+// ============================================
+
+function formatCurrency(amount) {
+  if (!amount) return '0 ج.م';
+  return parseFloat(amount).toLocaleString('ar-EG') + ' ج.م';
+}
