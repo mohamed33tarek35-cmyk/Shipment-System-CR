@@ -1,0 +1,215 @@
+<!-- ============================================
+     Topbar.html - الشريط العلوي
+     ============================================ -->
+
+<header class="topbar" id="topbar">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" title="القائمة">
+    ☰
+  </button>
+  
+  <h2 class="topbar-title" id="topbarTitle">لوحة التحكم</h2>
+  
+  <div class="topbar-actions">
+    
+    <!-- البحث السريع -->
+    <div class="topbar-search" style="position:relative;">
+      <input type="text" 
+             id="quickSearchInput" 
+             placeholder="بحث سريع..." 
+             style="padding:8px 16px; border:1px solid #e0e0e0; border-radius:20px; width:200px; font-size:13px; direction:rtl;"
+             onkeydown="if(event.key==='Enter'){App.navigate('search');}">
+    </div>
+    
+    <!-- الإشعارات -->
+    <button class="topbar-btn tooltip" 
+            id="notificationsBtn" 
+            data-tooltip="الإشعارات"
+            onclick="App.showNotifications()">
+      🔔
+      <span class="topbar-badge" id="notificationBadge" style="display:none;">0</span>
+    </button>
+    
+    <!-- قائمة الإشعارات -->
+    <div id="notificationsDropdown" 
+         style="display:none; position:absolute; top:60px; left:20px; width:320px; max-height:400px; overflow-y:auto; background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); z-index:200;">
+      <!-- يتم ملؤها ديناميكياً -->
+    </div>
+    
+    <!-- الوضع الليلي -->
+    <button class="topbar-btn tooltip" 
+            data-tooltip="الوضع الليلي"
+            onclick="App.toggleTheme()">
+      🌙
+    </button>
+    
+    <!-- المستخدم -->
+    <div class="topbar-user" style="position:relative;">
+      <button class="topbar-btn tooltip" 
+              data-tooltip="الحساب"
+              onclick="document.getElementById('userDropdown').classList.toggle('show')">
+        <span id="topbarUserInitial" style="font-weight:600;">👤</span>
+      </button>
+      
+      <!-- قائمة المستخدم -->
+      <div id="userDropdown" 
+           style="display:none; position:absolute; top:50px; left:0; width:200px; background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); z-index:200; overflow:hidden;">
+        
+        <div style="padding:16px; border-bottom:1px solid #eee; text-align:center;">
+          <div style="width:48px; height:48px; background:#1976D2; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:600; margin:0 auto 8px;" id="dropdownUserAvatar">
+            👤
+          </div>
+          <div style="font-weight:600; color:#333;" id="dropdownUserName">...</div>
+          <div style="font-size:12px; color:#999;" id="dropdownUserRole">...</div>
+        </div>
+        
+        <a href="javascript:void(0)" 
+           onclick="App.openModal('changePasswordModal'); document.getElementById('userDropdown').classList.remove('show');"
+           style="display:flex; align-items:center; gap:10px; padding:12px 16px; color:#333; font-size:14px; transition:background 0.2s;"
+           onmouseover="this.style.background='#f5f5f5'"
+           onmouseout="this.style.background='transparent'">
+          🔑 <span>تغيير كلمة المرور</span>
+        </a>
+        
+        <a href="javascript:void(0)" 
+           onclick="App.navigate('settings'); document.getElementById('userDropdown').classList.remove('show');"
+           style="display:flex; align-items:center; gap:10px; padding:12px 16px; color:#333; font-size:14px; transition:background 0.2s;"
+           onmouseover="this.style.background='#f5f5f5'"
+           onmouseout="this.style.background='transparent'">
+          ⚙️ <span>الإعدادات</span>
+        </a>
+        
+        <div style="border-top:1px solid #eee;"></div>
+        
+        <a href="javascript:void(0)" 
+           onclick="App.logout();"
+           style="display:flex; align-items:center; gap:10px; padding:12px 16px; color:#F44336; font-size:14px; transition:background 0.2s;"
+           onmouseover="this.style.background='#FFEBEE'"
+           onmouseout="this.style.background='transparent'">
+          🚪 <span>تسجيل الخروج</span>
+        </a>
+        
+      </div>
+    </div>
+    
+  </div>
+</header>
+
+<!-- Modal تغيير كلمة المرور -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">تغيير كلمة المرور</h3>
+      <button class="modal-close" onclick="App.closeModal('changePasswordModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label class="form-label">كلمة المرور الحالية <span class="required">*</span></label>
+          <input type="password" name="currentPassword" class="form-input" required>
+          <div class="form-error" data-error="currentPassword"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">كلمة المرور الجديدة <span class="required">*</span></label>
+          <input type="password" name="newPassword" class="form-input" required minlength="6">
+          <div class="form-error" data-error="newPassword"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">تأكيد كلمة المرور الجديدة <span class="required">*</span></label>
+          <input type="password" name="confirmPassword" class="form-input" required>
+          <div class="form-error" data-error="confirmPassword"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('changePasswordModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitChangePassword()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// تهيئة Topbar
+(function() {
+  function initTopbarUser() {
+    const user = App.user;
+    if (!user) return;
+    
+    const initial = (user.name || user.username || 'U').charAt(0).toUpperCase();
+    
+    const topbarInitial = document.getElementById('topbarUserInitial');
+    const dropdownAvatar = document.getElementById('dropdownUserAvatar');
+    const dropdownName = document.getElementById('dropdownUserName');
+    const dropdownRole = document.getElementById('dropdownUserRole');
+    
+    if (topbarInitial) topbarInitial.textContent = initial;
+    if (dropdownAvatar) dropdownAvatar.textContent = initial;
+    if (dropdownName) dropdownName.textContent = user.name || user.username;
+    if (dropdownRole) {
+      const roles = {
+        'SYSTEM_ADMIN': 'مدير النظام',
+        'TEAM_LEADER': 'رئيس الفريق',
+        'SENIOR_CS': 'موظف أول',
+        'EMPLOYEE': 'موظف'
+      };
+      dropdownRole.textContent = roles[user.role] || user.role;
+    }
+  }
+  
+  // إغلاق القوائم المنسدلة عند النقر خارجها
+  document.addEventListener('click', function(e) {
+    const userDropdown = document.getElementById('userDropdown');
+    const notificationsDropdown = document.getElementById('notificationsDropdown');
+    
+    if (userDropdown && !e.target.closest('.topbar-user')) {
+      userDropdown.classList.remove('show');
+    }
+    if (notificationsDropdown && !e.target.closest('#notificationsBtn')) {
+      notificationsDropdown.classList.remove('show');
+    }
+  });
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(initTopbarUser, 100);
+    });
+  } else {
+    setTimeout(initTopbarUser, 100);
+  }
+})();
+
+// تغيير كلمة المرور
+function submitChangePassword() {
+  const form = document.getElementById('changePasswordForm');
+  const currentPassword = form.querySelector('[name="currentPassword"]').value;
+  const newPassword = form.querySelector('[name="newPassword"]').value;
+  const confirmPassword = form.querySelector('[name="confirmPassword"]').value;
+  
+  // التحقق من التطابق
+  if (newPassword !== confirmPassword) {
+    App.toast('كلمات المرور غير متطابقة', 'error');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    App.toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  App.api('changePassword', {
+    currentPassword: currentPassword,
+    newPassword: newPassword
+  })
+  .then(function(result) {
+    App.toast(result.message, 'success');
+    App.closeModal('changePasswordModal');
+    form.reset();
+  })
+  .catch(function(result) {
+    App.toast(result.message || 'فشل في تغيير كلمة المرور', 'error');
+  })
+  .finally(function() {
+    App.hideLoading();
+  });
+}
+</script>
