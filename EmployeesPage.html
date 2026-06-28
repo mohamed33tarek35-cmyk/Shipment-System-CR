@@ -1,0 +1,554 @@
+<!-- ============================================
+     EmployeesPage.html - صفحة إدارة الموظفين
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">إدارة الموظفين</h1>
+      <p style="font-size: 14px; color: #757575;">إدارة حسابات الموظفين والصلاحيات</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-primary" onclick="openAddEmployeeModal()" data-perm="MANAGE_EMPLOYEES" style="display: none;">
+        <span>➕</span>
+        <span>إضافة موظف</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-4" style="margin-bottom: 24px;">
+    <div class="stat-card">
+      <div class="stat-icon blue">👥</div>
+      <div class="stat-info">
+        <div class="stat-value" id="totalEmployeesCount">0</div>
+        <div class="stat-label">إجمالي الموظفين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">✅</div>
+      <div class="stat-info">
+        <div class="stat-value" id="activeEmployeesCount">0</div>
+        <div class="stat-label">نشطين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">⚠️</div>
+      <div class="stat-info">
+        <div class="stat-value" id="inactiveEmployeesCount">0</div>
+        <div class="stat-label">غير نشطين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">📊</div>
+      <div class="stat-info">
+        <div class="stat-value" id="avgShipmentsPerEmployee">0</div>
+        <div class="stat-label">متوسط الشحنات</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar" style="margin-bottom: 20px;">
+    <div class="filter-group">
+      <label class="filter-label">الحالة:</label>
+      <select class="filter-select" id="employeeFilterStatus" onchange="loadEmployees()">
+        <option value="all">الكل</option>
+        <option value="active">نشط</option>
+        <option value="inactive">غير نشط</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">الدور:</label>
+      <select class="filter-select" id="employeeFilterRole" onchange="loadEmployees()">
+        <option value="all">الكل</option>
+        <option value="SYSTEM_ADMIN">مدير النظام</option>
+        <option value="TEAM_LEADER">رئيس الفريق</option>
+        <option value="SENIOR_CS">موظف أول</option>
+        <option value="EMPLOYEE">موظف</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <input type="text" id="employeeSearchInput" class="form-input" placeholder="بحث باسم المستخدم أو الاسم..." style="width: 250px;" onkeydown="if(event.key==='Enter') loadEmployees()">
+    </div>
+    <button class="btn btn-sm btn-secondary" onclick="resetEmployeeFilters()">إعادة تعيين</button>
+  </div>
+
+  <!-- Employees Table -->
+  <div class="card">
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="employeesTable">
+          <thead>
+            <tr>
+              <th>الموظف</th>
+              <th>اسم المستخدم</th>
+              <th>الدور</th>
+              <th>الحالة</th>
+              <th>الشحنات</th>
+              <th>تم التسليم</th>
+              <th>معدل التسليم</th>
+              <th>آخر دخول</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="employeesTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="employeesCount" style="font-size: 13px; color: #757575;">جاري التحميل...</span>
+      <div id="employeesPagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Add/Edit Employee -->
+<div class="modal-overlay" id="employeeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="employeeModalTitle">إضافة موظف جديد</h3>
+      <button class="modal-close" onclick="App.closeModal('employeeModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="employeeForm">
+        <input type="hidden" name="id" id="employeeId">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+            <input type="text" name="Name" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">اسم المستخدم <span class="required">*</span></label>
+            <input type="text" name="Username" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">البريد الإلكتروني</label>
+            <input type="email" name="Email" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">رقم الهاتف</label>
+            <input type="tel" name="Phone" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الدور <span class="required">*</span></label>
+            <select name="Role" class="form-select" required>
+              <option value="EMPLOYEE">موظف</option>
+              <option value="SENIOR_CS">موظف أول</option>
+              <option value="TEAM_LEADER">رئيس الفريق</option>
+              <option value="SYSTEM_ADMIN">مدير النظام</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">كلمة المرور <span class="required" id="passwordRequired">*</span></label>
+            <input type="password" name="Password" class="form-input" id="employeePassword" minlength="6">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="IsActive" value="true" checked style="width: 18px; height: 18px;">
+            <span>نشط</span>
+          </label>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('employeeModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Employee Permissions -->
+<div class="modal-overlay" id="permissionsModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 class="modal-title">صلاحيات الموظف</h3>
+      <button class="modal-close" onclick="App.closeModal('permissionsModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="permissionsEmployeeId">
+      <div id="permissionsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+        <!-- يتم ملؤها ديناميكياً -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('permissionsModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="savePermissions()">حفظ الصلاحيات</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Employees Page Scripts
+// ============================================
+
+let currentEmployeePage = 1;
+
+function initEmployees() {
+  // إظهار/إخفاء عناصر حسب الصلاحيات
+  document.querySelectorAll('[data-perm]').forEach(function(el) {
+    const perm = el.getAttribute('data-perm');
+    if (App.hasPermission(perm)) {
+      el.style.display = '';
+    }
+  });
+
+  loadEmployees();
+}
+
+function loadEmployees(page) {
+  page = page || 1;
+  currentEmployeePage = page;
+
+  App.showLoading();
+
+  const filters = {
+    status: document.getElementById('employeeFilterStatus').value,
+    role: document.getElementById('employeeFilterRole').value,
+    query: document.getElementById('employeeSearchInput').value.trim(),
+    page: page,
+    pageSize: 20
+  };
+
+  App.api('getEmployees', { filters: filters })
+    .then(function(result) {
+      renderEmployeesTable(result.data.employees);
+      renderEmployeesPagination(result.data.pagination);
+      updateEmployeeStats(result.data.stats);
+      document.getElementById('employeesCount').textContent = 
+        'إجمالي: ' + (result.data.pagination ? result.data.pagination.totalItems : 0) + ' موظف';
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل الموظفين', 'error');
+      App.hideLoading();
+    });
+}
+
+function renderEmployeesTable(employees) {
+  const tbody = document.getElementById('employeesTableBody');
+  if (!tbody) return;
+
+  if (!employees || employees.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#999;">لا يوجد موظفين</td></tr>';
+    return;
+  }
+
+  const roleNames = {
+    'SYSTEM_ADMIN': 'مدير النظام',
+    'TEAM_LEADER': 'رئيس الفريق',
+    'SENIOR_CS': 'موظف أول',
+    'EMPLOYEE': 'موظف'
+  };
+
+  tbody.innerHTML = employees.map(function(emp) {
+    const isActive = emp.IsActive === 'true' || emp.IsActive === true;
+    const statusBadge = isActive ? 
+      '<span class="status-badge delivered">نشط</span>' : 
+      '<span class="status-badge unassigned">غير نشط</span>';
+
+    const rate = parseFloat(emp.deliveryRate) || 0;
+    let rateColor = '#F44336';
+    if (rate >= 80) rateColor = '#4CAF50';
+    else if (rate >= 50) rateColor = '#FF9800';
+
+    return '<tr>' +
+      '<td>' +
+        '<div style="display: flex; align-items: center; gap: 10px;">' +
+          '<div class="avatar avatar-sm">' + (emp.Name ? emp.Name.charAt(0).toUpperCase() : 'U') + '</div>' +
+          '<div>' +
+            '<div style="font-weight: 600;">' + App.escapeHtml(emp.Name || emp.Username) + '</div>' +
+            '<div style="font-size: 12px; color: #999;">' + App.escapeHtml(emp.Email || '') + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
+      '<td>' + App.escapeHtml(emp.Username) + '</td>' +
+      '<td>' + (roleNames[emp.Role] || emp.Role) + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + (emp.totalShipments || 0) + '</td>' +
+      '<td>' + (emp.deliveredShipments || 0) + '</td>' +
+      '<td><span style="color:' + rateColor + ';font-weight:600;">' + rate + '%</span></td>' +
+      '<td style="font-size:12px;color:#999;">' + (emp.LastLogin ? App.formatDateTime(emp.LastLogin) : 'لم يسبق له') + '</td>' +
+      '<td>' +
+        '<div style="display:flex;gap:4px;">' +
+          '<button class="btn btn-sm btn-outline" onclick="editEmployee('' + emp.ID + '')" title="تعديل">✏️</button>' +
+          '<button class="btn btn-sm btn-outline" onclick="openPermissionsModal('' + emp.ID + '')" title="الصلاحيات">🔐</button>' +
+          '<button class="btn btn-sm btn-outline" onclick="toggleEmployeeStatus('' + emp.ID + '', ' + isActive + ')" title="' + (isActive ? 'تعطيل' : 'تفعيل') + '">' + (isActive ? '🔴' : '🟢') + '</button>' +
+          (App.hasPermission('DELETE_EMPLOYEE') ? '<button class="btn btn-sm btn-outline" onclick="deleteEmployee('' + emp.ID + '')" title="حذف" style="color:#F44336;">🗑️</button>' : '') +
+        '</div>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderEmployeesPagination(pagination) {
+  const container = document.getElementById('employeesPagination');
+  if (!container || !pagination || pagination.totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '<div class="pagination">';
+
+  html += '<button class="pagination-btn" ' + (pagination.hasPrev ? '' : 'disabled') + 
+          ' onclick="loadEmployees(' + (pagination.currentPage - 1) + ')">›</button>';
+
+  const startPage = Math.max(1, pagination.currentPage - 2);
+  const endPage = Math.min(pagination.totalPages, startPage + 4);
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += '<button class="pagination-btn ' + (i === pagination.currentPage ? 'active' : '') + 
+            '" onclick="loadEmployees(' + i + ')">' + i + '</button>';
+  }
+
+  html += '<button class="pagination-btn" ' + (pagination.hasNext ? '' : 'disabled') + 
+          ' onclick="loadEmployees(' + (pagination.currentPage + 1) + ')">‹</button>';
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function updateEmployeeStats(stats) {
+  if (!stats) return;
+  document.getElementById('totalEmployeesCount').textContent = stats.total || 0;
+  document.getElementById('activeEmployeesCount').textContent = stats.active || 0;
+  document.getElementById('inactiveEmployeesCount').textContent = stats.inactive || 0;
+  document.getElementById('avgShipmentsPerEmployee').textContent = stats.avgShipments || 0;
+}
+
+function resetEmployeeFilters() {
+  document.getElementById('employeeFilterStatus').value = 'all';
+  document.getElementById('employeeFilterRole').value = 'all';
+  document.getElementById('employeeSearchInput').value = '';
+  loadEmployees(1);
+}
+
+// ============================================
+// Add/Edit Employee
+// ============================================
+
+function openAddEmployeeModal() {
+  document.getElementById('employeeModalTitle').textContent = 'إضافة موظف جديد';
+  document.getElementById('employeeId').value = '';
+  document.getElementById('passwordRequired').style.display = '';
+  document.getElementById('employeePassword').required = true;
+  App.resetForm('employeeForm');
+  App.openModal('employeeModal');
+}
+
+function editEmployee(id) {
+  App.showLoading();
+
+  App.api('getEmployee', { employeeId: id })
+    .then(function(result) {
+      const emp = result.data;
+      document.getElementById('employeeModalTitle').textContent = 'تعديل موظف';
+      document.getElementById('employeeId').value = id;
+      document.getElementById('passwordRequired').style.display = 'none';
+      document.getElementById('employeePassword').required = false;
+
+      App.setFormData('employeeForm', {
+        Name: emp.Name,
+        Username: emp.Username,
+        Email: emp.Email,
+        Phone: emp.Phone,
+        Role: emp.Role,
+        IsActive: emp.IsActive === 'true' || emp.IsActive === true
+      });
+
+      App.hideLoading();
+      App.openModal('employeeModal');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل بيانات الموظف', 'error');
+      App.hideLoading();
+    });
+}
+
+function saveEmployee() {
+  const id = document.getElementById('employeeId').value;
+  const data = App.getFormData('employeeForm');
+
+  if (!data.Name || !data.Username || !data.Role) {
+    App.toast('يرجى ملء جميع الحقول المطلوبة', 'error');
+    return;
+  }
+
+  if (!id && !data.Password) {
+    App.toast('يرجى إدخال كلمة المرور', 'error');
+    return;
+  }
+
+  App.showLoading();
+
+  const action = id ? 'updateEmployee' : 'createEmployee';
+  const payload = id ? { employeeId: id, employee: data } : { employee: data };
+
+  App.api(action, payload)
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('employeeModal');
+      loadEmployees(currentEmployeePage);
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في الحفظ', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Toggle Status
+// ============================================
+
+function toggleEmployeeStatus(id, currentStatus) {
+  const actionText = currentStatus ? 'تعطيل' : 'تفعيل';
+
+  App.confirm('هل أنت متأكد من ' + actionText + ' هذا الموظف؟', function() {
+    App.showLoading();
+
+    App.api('toggleEmployeeStatus', { employeeId: id })
+      .then(function(result) {
+        App.toast(result.message, 'success');
+        loadEmployees(currentEmployeePage);
+      })
+      .catch(function(result) {
+        App.toast(result.message || 'فشل في تحديث الحالة', 'error');
+      })
+      .finally(function() {
+        App.hideLoading();
+      });
+  });
+}
+
+// ============================================
+// Delete Employee
+// ============================================
+
+function deleteEmployee(id) {
+  App.confirm('هل أنت متأكد من حذف هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.', function() {
+    App.showLoading();
+
+    App.api('deleteEmployee', { employeeId: id })
+      .then(function(result) {
+        App.toast(result.message, 'success');
+        loadEmployees(currentEmployeePage);
+      })
+      .catch(function(result) {
+        App.toast(result.message || 'فشل في الحذف', 'error');
+      })
+      .finally(function() {
+        App.hideLoading();
+      });
+  });
+}
+
+// ============================================
+// Permissions
+// ============================================
+
+const ALL_PERMISSIONS = [
+  { key: 'VIEW_DASHBOARD', label: 'عرض لوحة التحكم', category: 'عام' },
+  { key: 'VIEW_SHIPMENTS', label: 'عرض الشحنات', category: 'الشحنات' },
+  { key: 'ADD_SHIPMENT', label: 'إضافة شحنة', category: 'الشحنات' },
+  { key: 'EDIT_SHIPMENT', label: 'تعديل شحنة', category: 'الشحنات' },
+  { key: 'DELETE_SHIPMENT', label: 'حذف شحنة', category: 'الشحنات' },
+  { key: 'UPDATE_STATUS', label: 'تحديث حالة الشحنة', category: 'الشحنات' },
+  { key: 'IMPORT_SHIPMENTS', label: 'استيراد شحنات', category: 'الشحنات' },
+  { key: 'VIEW_ALL_SHIPMENTS', label: 'عرض جميع الشحنات', category: 'الشحنات' },
+  { key: 'ASSIGN_SHIPMENT', label: 'توزيع الشحنات', category: 'التوزيع' },
+  { key: 'REASSIGN_SHIPMENT', label: 'إعادة توزيع', category: 'التوزيع' },
+  { key: 'FOLLOW_UP', label: 'متابعة الشحنات', category: 'التوزيع' },
+  { key: 'VIEW_REPORTS', label: 'عرض التقارير', category: 'التقارير' },
+  { key: 'EXPORT_REPORTS', label: 'تصدير التقارير', category: 'التقارير' },
+  { key: 'VIEW_EMPLOYEES', label: 'عرض الموظفين', category: 'الموظفين' },
+  { key: 'MANAGE_EMPLOYEES', label: 'إدارة الموظفين', category: 'الموظفين' },
+  { key: 'DELETE_EMPLOYEE', label: 'حذف موظف', category: 'الموظفين' },
+  { key: 'VIEW_HISTORY', label: 'عرض السجل', category: 'السجل' },
+  { key: 'MANAGE_SETTINGS', label: 'إدارة الإعدادات', category: 'الإعدادات' }
+];
+
+function openPermissionsModal(id) {
+  document.getElementById('permissionsEmployeeId').value = id;
+
+  App.showLoading();
+
+  App.api('getEmployeePermissions', { employeeId: id })
+    .then(function(result) {
+      const employeePerms = result.data || [];
+      renderPermissionsList(employeePerms);
+      App.hideLoading();
+      App.openModal('permissionsModal');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل الصلاحيات', 'error');
+      App.hideLoading();
+    });
+}
+
+function renderPermissionsList(employeePerms) {
+  const container = document.getElementById('permissionsList');
+
+  // Group by category
+  const categories = {};
+  ALL_PERMISSIONS.forEach(function(perm) {
+    if (!categories[perm.category]) categories[perm.category] = [];
+    categories[perm.category].push(perm);
+  });
+
+  container.innerHTML = Object.keys(categories).map(function(cat) {
+    return '<div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;">' +
+      '<div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #1976D2;">' + cat + '</div>' +
+      categories[cat].map(function(perm) {
+        const isChecked = employeePerms.indexOf(perm.key) !== -1;
+        return '<label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; font-size: 13px;">' +
+          '<input type="checkbox" name="perm_' + perm.key + '" value="' + perm.key + '" ' + (isChecked ? 'checked' : '') + ' style="width: 16px; height: 16px;">' +
+          '<span>' + perm.label + '</span>' +
+        '</label>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+function savePermissions() {
+  const employeeId = document.getElementById('permissionsEmployeeId').value;
+
+  const permissions = [];
+  document.querySelectorAll('#permissionsList input[type="checkbox"]').forEach(function(cb) {
+    if (cb.checked) {
+      permissions.push(cb.value);
+    }
+  });
+
+  App.showLoading();
+
+  App.api('updateEmployeePermissions', { employeeId: employeeId, permissions: permissions })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('permissionsModal');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في حفظ الصلاحيات', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+</script>
