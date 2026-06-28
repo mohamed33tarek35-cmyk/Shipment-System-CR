@@ -1,0 +1,122 @@
+<!-- ============================================
+     Index.html - Main Layout Template
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="app-token" content="<?= token ?>">
+  <meta name="app-user" content="<?= user ?>">
+  <meta name="app-page" content="<?= page ?>">
+  <title><?= appName ?> - <?= appVersion ?></title>
+  
+  <?!= include('Style'); ?>
+  
+  <style>
+    #notificationsDropdown.show { display: block !important; }
+    
+    .notification-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .notification-item:hover { background: var(--gray-50); }
+    .notification-item.read { opacity: 0.6; }
+    
+    .notification-title {
+      font-size: var(--font-size-sm);
+      color: var(--gray-800);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .notification-time {
+      font-size: var(--font-size-xs);
+      color: var(--gray-500);
+    }
+    
+    #userDropdown.show { display: block !important; }
+    
+    .page-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.8);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .page-loading.active { display: flex; }
+  </style>
+</head>
+<body>
+
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جاري التحميل...</div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="page-loading" id="pageLoading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div class="app-layout">
+    <?!= include('Sidebar'); ?>
+    
+    <main class="main-content" id="mainContent">
+      <?!= include('Topbar'); ?>
+      
+      <div id="pageContent"></div>
+    </main>
+  </div>
+
+  <div style="display: none;">
+    <?!= include('DashboardPage'); ?>
+    <?!= include('ShipmentsPage'); ?>
+    <?!= include('AssignPage'); ?>
+    <?!= include('SearchPage'); ?>
+  </div>
+
+  <?!= include('JavaScript'); ?>
+  
+  <script>
+    (function() {
+      const templates = {
+        'dashboard': 'DashboardPage',
+        'shipments': 'ShipmentsPage',
+        'shipment-detail': 'ShipmentDetail',
+        'assign': 'AssignPage',
+        'search': 'SearchPage',
+        'reports': 'ReportsPage',
+        'employees': 'EmployeesPage',
+        'history': 'HistoryPage',
+        'settings': 'SettingsPage'
+      };
+      
+      Object.keys(templates).forEach(function(page) {
+        const templateId = 'template-' + templates[page];
+        const existingTemplate = document.getElementById(templateId);
+        
+        if (!existingTemplate) {
+          const div = document.createElement('div');
+          div.id = templateId;
+          div.style.display = 'none';
+          document.body.appendChild(div);
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>
