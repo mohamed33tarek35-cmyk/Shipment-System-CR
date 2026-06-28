@@ -1,0 +1,270 @@
+<!-- ============================================
+     SettingsPage.html - صفحة الإعدادات
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+  
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">الإعدادات</h1>
+      <p style="font-size: 14px; color: #757575;">إدارة إعدادات النظام والتكوينات</p>
+    </div>
+  </div>
+
+  <!-- System Settings -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+    
+    <!-- General Settings -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الإعدادات العامة</span>
+      </div>
+      <div class="card-body">
+        <form id="generalSettingsForm">
+          <div class="form-group">
+            <label class="form-label">اسم النظام</label>
+            <input type="text" name="appName" class="form-input" id="settingAppName">
+          </div>
+          <div class="form-group">
+            <label class="form-label">البريد الإلكتروني للإشعارات</label>
+            <input type="email" name="notificationEmail" class="form-input" id="settingNotificationEmail">
+          </div>
+          <div class="form-group">
+            <label class="form-label">عدد "لا يرد" قبل التنبيه</label>
+            <input type="number" name="noAnswerThreshold" class="form-input" id="settingNoAnswerThreshold" min="1" value="3">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" name="autoAssignEnabled" id="settingAutoAssignEnabled" style="width: 18px; height: 18px;">
+              <span>تفعيل التوزيع التلقائي</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <button class="btn btn-primary" onclick="saveGeneralSettings()">حفظ الإعدادات</button>
+      </div>
+    </div>
+
+    <!-- Governorate Settings -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">المحافظات والفروع</span>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">إضافة محافظة جديدة</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="newGovernorate" class="form-input" placeholder="اسم المحافظة">
+            <button class="btn btn-primary" onclick="addGovernorate()">إضافة</button>
+          </div>
+        </div>
+        <div id="governoratesList" style="max-height: 200px; overflow-y: auto;">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status Configuration -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <span class="card-title">تكوين حالات الشحنات</span>
+    </div>
+    <div class="card-body">
+      <div id="statusConfigList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <!-- يتم ملؤها ديناميكياً -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Management -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">إدارة البيانات</span>
+    </div>
+    <div class="card-body" style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button class="btn btn-outline" onclick="backupData()">
+        <span>💾</span>
+        <span>نسخ احتياطي</span>
+      </button>
+      <button class="btn btn-outline" onclick="restoreData()">
+        <span>📂</span>
+        <span>استعادة</span>
+      </button>
+      <button class="btn btn-danger" onclick="clearCache()">
+        <span>🗑️</span>
+        <span>مسح الذاكرة المؤقتة</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// Settings Page Scripts
+// ============================================
+
+function initSettings() {
+  loadSettings();
+}
+
+function loadSettings() {
+  App.showLoading();
+  
+  App.api('getSettings', {})
+    .then(function(result) {
+      const settings = result.data || {};
+      
+      document.getElementById('settingAppName').value = settings.appName || '';
+      document.getElementById('settingNotificationEmail').value = settings.notificationEmail || '';
+      document.getElementById('settingNoAnswerThreshold').value = settings.noAnswerThreshold || 3;
+      document.getElementById('settingAutoAssignEnabled').checked = settings.autoAssignEnabled === true || settings.autoAssignEnabled === 'true';
+      
+      renderGovernorates(settings.governorates || []);
+      renderStatusConfig(settings.statuses || []);
+      
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل الإعدادات', 'error');
+      App.hideLoading();
+    });
+}
+
+function renderGovernorates(governorates) {
+  const container = document.getElementById('governoratesList');
+  if (!governorates.length) {
+    container.innerHTML = '<div style="text-align:center;padding:12px;color:#999;">لا توجد محافظات</div>';
+    return;
+  }
+  
+  container.innerHTML = governorates.map(function(g) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #eee;">' +
+      '<span>' + App.escapeHtml(g) + '</span>' +
+      '<button class="btn btn-sm btn-outline" onclick="removeGovernorate(\\'' + App.escapeHtml(g) + '\\')" style="color:#F44336;">حذف</button>' +
+    '</div>';
+  }).join('');
+}
+
+function renderStatusConfig(statuses) {
+  const container = document.getElementById('statusConfigList');
+  const defaultStatuses = [
+    { name: 'غير موزعة', color: '#9E9E9E', editable: false },
+    { name: 'جاهز للاستلام', color: '#2196F3', editable: false },
+    { name: 'تم التسليم', color: '#4CAF50', editable: false },
+    { name: 'لا يرد', color: '#FF9800', editable: false },
+    { name: 'مؤجل', color: '#9C27B0', editable: false },
+    { name: 'مرتجع', color: '#F44336', editable: false },
+    { name: 'رفض بسبب الخامة', color: '#795548', editable: false },
+    { name: 'رفض بسبب التأخير', color: '#607D8B', editable: false },
+    { name: 'مغلق', color: '#000000', editable: false }
+  ];
+  
+  const allStatuses = statuses.length ? statuses : defaultStatuses;
+  
+  container.innerHTML = allStatuses.map(function(s) {
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;">' +
+      '<div style="width:16px;height:16px;border-radius:50%;background:' + s.color + ';"></div>' +
+      '<span style="flex:1;font-weight:500;">' + App.escapeHtml(s.name) + '</span>' +
+      (s.editable !== false ? '<button class="btn btn-sm btn-outline" onclick="editStatus(\\'' + App.escapeHtml(s.name) + '\\')">تعديل</button>' : '<span style="font-size:12px;color:#999;">افتراضي</span>') +
+    '</div>';
+  }).join('');
+}
+
+function saveGeneralSettings() {
+  const data = {
+    appName: document.getElementById('settingAppName').value,
+    notificationEmail: document.getElementById('settingNotificationEmail').value,
+    noAnswerThreshold: parseInt(document.getElementById('settingNoAnswerThreshold').value) || 3,
+    autoAssignEnabled: document.getElementById('settingAutoAssignEnabled').checked
+  };
+  
+  App.showLoading();
+  
+  App.api('saveSettings', { settings: data })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في حفظ الإعدادات', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+function addGovernorate() {
+  const name = document.getElementById('newGovernorate').value.trim();
+  if (!name) {
+    App.toast('يرجى إدخال اسم المحافظة', 'warning');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('addGovernorate', { name: name })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      document.getElementById('newGovernorate').value = '';
+      loadSettings();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في الإضافة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+function removeGovernorate(name) {
+  App.confirm('هل أنت متأكد من حذف هذه المحافظة؟', function() {
+    App.showLoading();
+    
+    App.api('removeGovernorate', { name: name })
+      .then(function(result) {
+        App.toast(result.message, 'success');
+        loadSettings();
+      })
+      .catch(function(result) {
+        App.toast(result.message || 'فشل في الحذف', 'error');
+      })
+      .finally(function() {
+        App.hideLoading();
+      });
+  });
+}
+
+function backupData() {
+  App.showLoading();
+  
+  App.api('backupData', {})
+    .then(function(result) {
+      if (result.data && result.data.downloadUrl) {
+        window.open(result.data.downloadUrl, '_blank');
+      }
+      App.toast(result.message, 'success');
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إنشاء النسخ الاحتياطي', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+function restoreData() {
+  App.toast('يرجى رفع ملف النسخ الاحتياطي', 'info');
+}
+
+function clearCache() {
+  App.confirm('هل أنت متأكد من مسح الذاكرة المؤقتة؟', function() {
+    localStorage.clear();
+    sessionStorage.clear();
+    App.toast('تم مسح الذاكرة المؤقتة', 'success');
+  });
+}
+</script>
