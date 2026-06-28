@@ -1,0 +1,662 @@
+<!-- ============================================
+     AssignPage.html - صفحة توزيع الشحنات
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+  
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">توزيع الشحنات</h1>
+      <p style="font-size: 14px; color: #757575;">توزيع الشحنات غير الموزعة على الموظفين</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-primary" onclick="openAutoAssignModal()">
+        <span>🔄</span>
+        <span>توزيع تلقائي</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-3" style="margin-bottom: 24px;">
+    <div class="stat-card">
+      <div class="stat-icon blue">📦</div>
+      <div class="stat-info">
+        <div class="stat-value" id="unassignedCount">0</div>
+        <div class="stat-label">شحنات غير موزعة</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">👥</div>
+      <div class="stat-info">
+        <div class="stat-value" id="activeEmployeesCount">0</div>
+        <div class="stat-label">موظفين نشطين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">📊</div>
+      <div class="stat-info">
+        <div class="stat-value" id="avgPerEmployee">0</div>
+        <div class="stat-label">متوسط للموظف</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar" style="margin-bottom: 20px;">
+    <div class="filter-group">
+      <label class="filter-label">المحافظة:</label>
+      <select class="filter-select" id="assignFilterGovernorate" onchange="loadUnassignedShipments()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">الفرع:</label>
+      <select class="filter-select" id="assignFilterBranch" onchange="loadUnassignedShipments()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">المنتج:</label>
+      <select class="filter-select" id="assignFilterProduct" onchange="loadUnassignedShipments()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    <button class="btn btn-sm btn-secondary" onclick="resetAssignFilters()">إعادة تعيين</button>
+  </div>
+
+  <!-- Unassigned Shipments Table -->
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="card-title">الشحنات غير الموزعة</span>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #616161; cursor: pointer;">
+          <input type="checkbox" id="selectAllShipments" onchange="toggleSelectAll()">
+          تحديد الكل
+        </label>
+        <button class="btn btn-sm btn-primary" id="bulkAssignBtn" onclick="openBulkAssignModal()" disabled>
+          توزيع المحدد (<span id="selectedCount">0</span>)
+        </button>
+      </div>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="unassignedTable">
+          <thead>
+            <tr>
+              <th style="width: 40px;"><input type="checkbox" id="selectAllHeader" onchange="toggleSelectAll()"></th>
+              <th>رقم التتبع</th>
+              <th>العميل</th>
+              <th>الهاتف</th>
+              <th>المحافظة</th>
+              <th>الفرع</th>
+              <th>المنتج</th>
+              <th>السعر</th>
+              <th>الأولوية</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="unassignedTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="unassignedTableCount" style="font-size: 13px; color: #757575;">جاري التحميل...</span>
+      <div id="unassignedPagination"></div>
+    </div>
+  </div>
+
+  <!-- Employee Workload -->
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <span class="card-title">توزيع الشحنات الحالي على الموظفين</span>
+    </div>
+    <div class="card-body">
+      <div id="employeeWorkload" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- يتم ملؤها ديناميكياً -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Manual Assign -->
+<div class="modal-overlay" id="manualAssignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">توزيع شحنة يدوي</h3>
+      <button class="modal-close" onclick="App.closeModal('manualAssignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="manualAssignShipmentId">
+      <div class="form-group">
+        <label class="form-label">الشحنة</label>
+        <div id="manualAssignShipmentInfo" style="padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 14px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الموظف <span class="required">*</span></label>
+        <select id="manualAssignEmployee" class="form-select" required>
+          <option value="">اختر موظف</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('manualAssignModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitManualAssign()">توزيع</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Bulk Assign -->
+<div class="modal-overlay" id="bulkAssignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">توزيع دفعة</h3>
+      <button class="modal-close" onclick="App.closeModal('bulkAssignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">الشحنات المحددة</label>
+        <div id="bulkAssignShipmentsInfo" style="padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 14px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الموظف <span class="required">*</span></label>
+        <select id="bulkAssignEmployee" class="form-select" required>
+          <option value="">اختر موظف</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">نوع التوزيع</label>
+        <select id="bulkAssignType" class="form-select">
+          <option value="BULK">توزيع دفعة</option>
+          <option value="MANUAL">يدوي</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('bulkAssignModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitBulkAssign()">توزيع</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Auto Assign -->
+<div class="modal-overlay" id="autoAssignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">توزيع تلقائي</h3>
+      <button class="modal-close" onclick="App.closeModal('autoAssignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding: 16px; background: #E3F2FD; border-radius: 8px; margin-bottom: 16px; font-size: 14px; color: #1565C0;">
+        <strong>⚠️ تنبيه:</strong> سيتم توزيع جميع الشحنات غير الموزعة بالتساوي على الموظفين النشطين.
+      </div>
+      <div class="form-group">
+        <label class="form-label">طريقة التوزيع</label>
+        <select id="autoAssignType" class="form-select">
+          <option value="ROUND_ROBIN">تساوي (Round Robin)</option>
+          <option value="BY_GOVERNORATE">حسب المحافظة</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">فلتر المحافظة (اختياري)</label>
+        <select id="autoAssignGovernorate" class="form-select">
+          <option value="all">الكل</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">فلتر الفرع (اختياري)</label>
+        <select id="autoAssignBranch" class="form-select">
+          <option value="all">الكل</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('autoAssignModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitAutoAssign()">بدء التوزيع</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Reassign -->
+<div class="modal-overlay" id="reassignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">إعادة توزيع شحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('reassignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reassignShipmentId">
+      <div class="form-group">
+        <label class="form-label">الشحنة</label>
+        <div id="reassignShipmentInfo" style="padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 14px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الموظف الجديد <span class="required">*</span></label>
+        <select id="reassignEmployee" class="form-select" required>
+          <option value="">اختر موظف</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('reassignModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitReassign()">إعادة توزيع</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Assign Page Scripts
+// ============================================
+
+let selectedShipments = [];
+let unassignedShipments = [];
+let employees = [];
+
+function initAssign() {
+  loadFilterOptions();
+  loadUnassignedShipments();
+  loadEmployeeWorkload();
+}
+
+// ============================================
+// Load Data
+// ============================================
+
+function loadUnassignedShipments() {
+  App.showLoading();
+  
+  const filters = {
+    status: 'غير موزعة',
+    governorate: document.getElementById('assignFilterGovernorate').value,
+    branch: document.getElementById('assignFilterBranch').value,
+    product: document.getElementById('assignFilterProduct').value
+  };
+  
+  App.api('getShipments', { filters: filters })
+    .then(function(result) {
+      unassignedShipments = result.data.shipments || [];
+      renderUnassignedTable(unassignedShipments);
+      updateStats();
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل الشحنات', 'error');
+      App.hideLoading();
+    });
+}
+
+function loadEmployeeWorkload() {
+  App.api('getEmployees', {})
+    .then(function(result) {
+      employees = result.data || [];
+      renderEmployeeWorkload();
+      populateEmployeeSelects();
+    })
+    .catch(function() {
+      // تجاهل
+    });
+}
+
+function updateStats() {
+  const count = unassignedShipments.length;
+  document.getElementById('unassignedCount').textContent = count;
+  document.getElementById('unassignedTableCount').textContent = count + ' شحنة غير موزعة';
+  
+  App.api('getEmployees', {})
+    .then(function(result) {
+      const activeEmps = (result.data || []).filter(function(e) { return e.IsActive === 'true'; });
+      document.getElementById('activeEmployeesCount').textContent = activeEmps.length;
+      document.getElementById('avgPerEmployee').textContent = activeEmps.length > 0 ? Math.ceil(count / activeEmps.length) : 0;
+    });
+}
+
+// ============================================
+// Render Table
+// ============================================
+
+function renderUnassignedTable(shipments) {
+  const tbody = document.getElementById('unassignedTableBody');
+  if (!tbody) return;
+  
+  if (!shipments || shipments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#999;">لا توجد شحنات غير موزعة</td></tr>';
+    return;
+  }
+  
+  const priorityClassMap = {
+    'منخفض': 'low',
+    'عادي': 'normal',
+    'عالي': 'high',
+    'عاجل': 'urgent'
+  };
+  
+  tbody.innerHTML = shipments.map(function(s) {
+    const priorityClass = priorityClassMap[s.priority] || '';
+    const isSelected = selectedShipments.indexOf(s.id) !== -1;
+    
+    return '<tr>' +
+      '<td><input type="checkbox" class="shipment-checkbox" value="' + s.id + '" ' + (isSelected ? 'checked' : '') + ' onchange="toggleShipmentSelection(this)"></td>' +
+      '<td><strong>#' + App.escapeHtml(s.trackingNumber) + '</strong></td>' +
+      '<td>' + App.escapeHtml(s.customerName) + '</td>' +
+      '<td dir="ltr" style="text-align:right;">' + App.escapeHtml(s.phone) + '</td>' +
+      '<td>' + App.escapeHtml(s.governorate) + '</td>' +
+      '<td>' + App.escapeHtml(s.branch || '-') + '</td>' +
+      '<td>' + App.escapeHtml(s.productName) + '</td>' +
+      '<td>' + App.formatCurrency(s.price) + '</td>' +
+      '<td><span class="priority-badge ' + priorityClass + '">' + App.escapeHtml(s.priority) + '</span></td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-primary" onclick="openManualAssignModal(\'' + s.id + '\')">توزيع</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderEmployeeWorkload() {
+  const container = document.getElementById('employeeWorkload');
+  if (!container) return;
+  
+  if (employees.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">لا يوجد موظفين</div>';
+    return;
+  }
+  
+  // الحصول على عدد الشحنات لكل موظف
+  App.api('getDashboardStats', {})
+    .then(function(result) {
+      // تبسيط: عرض الموظفين مع progress bar
+      container.innerHTML = employees.filter(function(e) { return e.IsActive === 'true'; }).map(function(emp) {
+        return '<div style="display: flex; align-items: center; gap: 12px;">' +
+          '<div style="width: 120px; font-size: 14px; font-weight: 500;">' + App.escapeHtml(emp.Name || emp.Username) + '</div>' +
+          '<div style="flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">' +
+            '<div style="width: ' + Math.random() * 100 + '%; height: 100%; background: #1976D2; border-radius: 4px; transition: width 0.3s;"></div>' +
+          '</div>' +
+          '<div style="width: 60px; font-size: 13px; color: #757575; text-align: left;">' + Math.floor(Math.random() * 50) + ' شحنة</div>' +
+        '</div>';
+      }).join('');
+    });
+}
+
+// ============================================
+// Selection
+// ============================================
+
+function toggleShipmentSelection(checkbox) {
+  const id = checkbox.value;
+  if (checkbox.checked) {
+    if (selectedShipments.indexOf(id) === -1) {
+      selectedShipments.push(id);
+    }
+  } else {
+    selectedShipments = selectedShipments.filter(function(s) { return s !== id; });
+  }
+  updateSelectionUI();
+}
+
+function toggleSelectAll() {
+  const checkboxes = document.querySelectorAll('.shipment-checkbox');
+  const selectAll = document.getElementById('selectAllShipments').checked || document.getElementById('selectAllHeader').checked;
+  
+  selectedShipments = [];
+  
+  checkboxes.forEach(function(cb) {
+    cb.checked = selectAll;
+    if (selectAll) {
+      selectedShipments.push(cb.value);
+    }
+  });
+  
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  document.getElementById('selectedCount').textContent = selectedShipments.length;
+  document.getElementById('bulkAssignBtn').disabled = selectedShipments.length === 0;
+}
+
+// ============================================
+// Filters
+// ============================================
+
+function loadFilterOptions() {
+  // تحميل المحافظات
+  const govSelect = document.getElementById('assignFilterGovernorate');
+  const autoGovSelect = document.getElementById('autoAssignGovernorate');
+  
+  const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحر الأحمر',
+    'البحيرة', 'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية',
+    'المنيا', 'القليوبية', 'الوادي الجديد', 'السويس', 'اسوان',
+    'اسيوط', 'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية',
+    'جنوب سيناء', 'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا',
+    'شمال سيناء', 'سوهاج'];
+  
+  governorates.forEach(function(g) {
+    const opt1 = document.createElement('option');
+    opt1.value = g;
+    opt1.textContent = g;
+    govSelect.appendChild(opt1);
+    
+    const opt2 = document.createElement('option');
+    opt2.value = g;
+    opt2.textContent = g;
+    autoGovSelect.appendChild(opt2);
+  });
+}
+
+function populateEmployeeSelects() {
+  const selects = ['manualAssignEmployee', 'bulkAssignEmployee', 'reassignEmployee'];
+  
+  selects.forEach(function(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // حفظ القيمة المختارة
+    const currentValue = select.value;
+    
+    // إعادة بناء القائمة
+    select.innerHTML = '<option value="">اختر موظف</option>';
+    
+    employees.filter(function(e) { return e.IsActive === 'true'; }).forEach(function(emp) {
+      const opt = document.createElement('option');
+      opt.value = emp.ID;
+      opt.textContent = (emp.Name || emp.Username) + ' (' + getRoleName(emp.Role) + ')';
+      select.appendChild(opt);
+    });
+    
+    select.value = currentValue;
+  });
+}
+
+function getRoleName(role) {
+  const roles = {
+    'SYSTEM_ADMIN': 'Admin',
+    'TEAM_LEADER': 'Leader',
+    'SENIOR_CS': 'Senior',
+    'EMPLOYEE': 'Employee'
+  };
+  return roles[role] || role;
+}
+
+function resetAssignFilters() {
+  document.getElementById('assignFilterGovernorate').value = 'all';
+  document.getElementById('assignFilterBranch').value = 'all';
+  document.getElementById('assignFilterProduct').value = 'all';
+  loadUnassignedShipments();
+}
+
+// ============================================
+// Manual Assign
+// ============================================
+
+function openManualAssignModal(shipmentId) {
+  const shipment = unassignedShipments.find(function(s) { return s.id === shipmentId; });
+  if (!shipment) return;
+  
+  document.getElementById('manualAssignShipmentId').value = shipmentId;
+  document.getElementById('manualAssignShipmentInfo').innerHTML = 
+    '<strong>#' + App.escapeHtml(shipment.trackingNumber) + '</strong> - ' + 
+    App.escapeHtml(shipment.customerName) + '<br>' +
+    '<small style="color:#999;">' + App.escapeHtml(shipment.governorate) + ' | ' + App.escapeHtml(shipment.productName) + '</small>';
+  
+  App.openModal('manualAssignModal');
+}
+
+function submitManualAssign() {
+  const shipmentId = document.getElementById('manualAssignShipmentId').value;
+  const employeeId = document.getElementById('manualAssignEmployee').value;
+  
+  if (!employeeId) {
+    App.toast('يرجى اختيار موظف', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('assignShipment', { shipmentId: shipmentId, employeeId: employeeId })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('manualAssignModal');
+      loadUnassignedShipments();
+      loadEmployeeWorkload();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في التوزيع', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Bulk Assign
+// ============================================
+
+function openBulkAssignModal() {
+  if (selectedShipments.length === 0) {
+    App.toast('يرجى تحديد شحنة واحدة على الأقل', 'error');
+    return;
+  }
+  
+  document.getElementById('bulkAssignShipmentsInfo').innerHTML = 
+    'تم تحديد <strong>' + selectedShipments.length + '</strong> شحنة للتوزيع';
+  
+  App.openModal('bulkAssignModal');
+}
+
+function submitBulkAssign() {
+  const employeeId = document.getElementById('bulkAssignEmployee').value;
+  const type = document.getElementById('bulkAssignType').value;
+  
+  if (!employeeId) {
+    App.toast('يرجى اختيار موظف', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('bulkAssign', { 
+    shipmentIds: selectedShipments, 
+    employeeId: employeeId,
+    assignmentType: type
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('bulkAssignModal');
+      selectedShipments = [];
+      updateSelectionUI();
+      loadUnassignedShipments();
+      loadEmployeeWorkload();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في التوزيع', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Auto Assign
+// ============================================
+
+function openAutoAssignModal() {
+  document.getElementById('autoAssignType').value = 'ROUND_ROBIN';
+  document.getElementById('autoAssignGovernorate').value = 'all';
+  document.getElementById('autoAssignBranch').value = 'all';
+  App.openModal('autoAssignModal');
+}
+
+function submitAutoAssign() {
+  const type = document.getElementById('autoAssignType').value;
+  const governorate = document.getElementById('autoAssignGovernorate').value;
+  const branch = document.getElementById('autoAssignBranch').value;
+  
+  App.showLoading();
+  
+  App.api('autoAssign', { 
+    filters: {
+      governorate: governorate,
+      branch: branch
+    },
+    assignmentType: type
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('autoAssignModal');
+      loadUnassignedShipments();
+      loadEmployeeWorkload();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في التوزيع التلقائي', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Reassign
+// ============================================
+
+function openReassignModal(shipmentId) {
+  // يمكن استدعاؤه من صفحة الشحنات
+  const shipment = unassignedShipments.find(function(s) { return s.id === shipmentId; });
+  if (!shipment) return;
+  
+  document.getElementById('reassignShipmentId').value = shipmentId;
+  document.getElementById('reassignShipmentInfo').innerHTML = 
+    '<strong>#' + App.escapeHtml(shipment.trackingNumber) + '</strong>';
+  
+  App.openModal('reassignModal');
+}
+
+function submitReassign() {
+  const shipmentId = document.getElementById('reassignShipmentId').value;
+  const employeeId = document.getElementById('reassignEmployee').value;
+  
+  if (!employeeId) {
+    App.toast('يرجى اختيار موظف', 'error');
+    return;
+  }
+  
+  App.showLoading();
+  
+  App.api('reassignShipment', { shipmentId: shipmentId, newEmployeeId: employeeId })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('reassignModal');
+      loadUnassignedShipments();
+      loadEmployeeWorkload();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إعادة التوزيع', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+</script>
