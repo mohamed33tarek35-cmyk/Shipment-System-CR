@@ -1,0 +1,293 @@
+<!-- ============================================
+     HistoryPage.html - صفحة سجل العمليات
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">سجل العمليات</h1>
+      <p style="font-size: 14px; color: #757575;">سجل كامل لجميع العمليات والتغييرات في النظام</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" onclick="exportHistory()">
+        <span>📥</span>
+        <span>تصدير</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar" style="margin-bottom: 20px;">
+    <div class="filter-group">
+      <label class="filter-label">نوع العملية:</label>
+      <select class="filter-select" id="historyFilterAction" onchange="loadHistory()">
+        <option value="all">الكل</option>
+        <option value="إنشاء">إنشاء</option>
+        <option value="تحديث">تحديث</option>
+        <option value="حذف">حذف</option>
+        <option value="توزيع">توزيع</option>
+        <option value="إعادة توزيع">إعادة توزيع</option>
+        <option value="تغيير حالة">تغيير حالة</option>
+        <option value="إضافة ملاحظة">إضافة ملاحظة</option>
+        <option value="متابعة">متابعة</option>
+        <option value="استيراد">استيراد</option>
+        <option value="تصدير">تصدير</option>
+        <option value="تسجيل دخول">تسجيل دخول</option>
+        <option value="تسجيل خروج">تسجيل خروج</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">الموظف:</label>
+      <select class="filter-select" id="historyFilterEmployee" onchange="loadHistory()">
+        <option value="all">الكل</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">من:</label>
+      <input type="date" id="historyDateFrom" class="form-input" style="width: 140px;" onchange="loadHistory()">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">إلى:</label>
+      <input type="date" id="historyDateTo" class="form-input" style="width: 140px;" onchange="loadHistory()">
+    </div>
+    <button class="btn btn-sm btn-secondary" onclick="resetHistoryFilters()">إعادة تعيين</button>
+  </div>
+
+  <!-- History Table -->
+  <div class="card">
+    <div class="card-body" style="padding: 0;">
+      <div class="table-container" style="border-radius: 0; box-shadow: none;">
+        <table class="data-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>الوقت</th>
+              <th>العملية</th>
+              <th>الموظف</th>
+              <th>الشحنة</th>
+              <th>التفاصيل</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <!-- يتم ملؤها ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="historyCount" style="font-size: 13px; color: #757575;">جاري التحميل...</span>
+      <div id="historyPagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// History Page Scripts
+// ============================================
+
+let currentHistoryPage = 1;
+
+function initHistory() {
+  // تعيين التواريخ الافتراضية
+  const today = new Date();
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  document.getElementById('historyDateTo').value = today.toISOString().split('T')[0];
+  document.getElementById('historyDateFrom').value = lastWeek.toISOString().split('T')[0];
+
+  // تحميل الموظفين
+  loadHistoryEmployees();
+
+  // تحميل السجل
+  loadHistory();
+}
+
+function loadHistoryEmployees() {
+  App.api('getEmployees', {})
+    .then(function(result) {
+      const empSelect = document.getElementById('historyFilterEmployee');
+      if (empSelect && result.data) {
+        result.data.forEach(function(emp) {
+          const opt = document.createElement('option');
+          opt.value = emp.ID;
+          opt.textContent = emp.Name || emp.Username;
+          empSelect.appendChild(opt);
+        });
+      }
+    });
+}
+
+function loadHistory(page) {
+  page = page || 1;
+  currentHistoryPage = page;
+
+  App.showLoading();
+
+  const filters = {
+    action: document.getElementById('historyFilterAction').value,
+    employee: document.getElementById('historyFilterEmployee').value,
+    dateFrom: document.getElementById('historyDateFrom').value,
+    dateTo: document.getElementById('historyDateTo').value,
+    page: page,
+    pageSize: 25
+  };
+
+  App.api('getHistory', { filters: filters })
+    .then(function(result) {
+      renderHistoryTable(result.data.history);
+      renderHistoryPagination(result.data.pagination);
+      document.getElementById('historyCount').textContent = 
+        'إجمالي: ' + (result.data.pagination ? result.data.pagination.totalItems : 0) + ' عملية';
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل السجل', 'error');
+      App.hideLoading();
+    });
+}
+
+function renderHistoryTable(history) {
+  const tbody = document.getElementById('historyTableBody');
+  if (!tbody) return;
+
+  if (!history || history.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#999;">لا توجد عمليات</td></tr>';
+    return;
+  }
+
+  const actionIcons = {
+    'إنشاء': '🆕',
+    'تحديث': '✏️',
+    'حذف': '🗑️',
+    'توزيع': '🔄',
+    'إعادة توزيع': '🔀',
+    'تغيير حالة': '📊',
+    'إضافة ملاحظة': '📝',
+    'متابعة': '📞',
+    'استيراد': '📥',
+    'تصدير': '📤',
+    'تسجيل دخول': '🔐',
+    'تسجيل خروج': '🚪'
+  };
+
+  const actionColors = {
+    'إنشاء': '#4CAF50',
+    'تحديث': '#2196F3',
+    'حذف': '#F44336',
+    'توزيع': '#FF9800',
+    'إعادة توزيع': '#9C27B0',
+    'تغيير حالة': '#00BCD4',
+    'إضافة ملاحظة': '#795548',
+    'متابعة': '#607D8B',
+    'استيراد': '#3F51B5',
+    'تصدير': '#009688',
+    'تسجيل دخول': '#8BC34A',
+    'تسجيل خروج': '#FF5722'
+  };
+
+  tbody.innerHTML = history.map(function(h) {
+    const icon = actionIcons[h.actionType] || '📋';
+    const color = actionColors[h.actionType] || '#757575';
+
+    let details = '';
+    if (h.oldStatus && h.newStatus) {
+      details = 'من: ' + App.escapeHtml(h.oldStatus) + ' → إلى: ' + App.escapeHtml(h.newStatus);
+    } else if (h.notes) {
+      details = App.escapeHtml(h.notes);
+    } else if (h.details) {
+      details = App.escapeHtml(h.details);
+    }
+
+    return '<tr>' +
+      '<td style="font-size: 12px; color: #757575; white-space: nowrap;">' + App.formatDateTime(h.timestamp) + '</td>' +
+      '<td>' +
+        '<span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: ' + color + '15; color: ' + color + ';">' +
+          icon + ' ' + App.escapeHtml(h.actionType) +
+        '</span>' +
+      '</td>' +
+      '<td>' + (h.employeeName ? App.escapeHtml(h.employeeName) : '<span style="color:#999;">-</span>') + '</td>' +
+      '<td>' + (h.trackingNumber ? '<strong>#' + App.escapeHtml(h.trackingNumber) + '</strong>' : '<span style="color:#999;">-</span>') + '</td>' +
+      '<td style="font-size: 13px; color: #616161; max-width: 300px;">' + (details || '<span style="color:#999;">-</span>') + '</td>' +
+      '<td style="font-size: 12px; color: #999; direction: ltr;">' + (h.ipAddress || '-') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderHistoryPagination(pagination) {
+  const container = document.getElementById('historyPagination');
+  if (!container || !pagination || pagination.totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '<div class="pagination">';
+
+  html += '<button class="pagination-btn" ' + (pagination.hasPrev ? '' : 'disabled') + 
+          ' onclick="loadHistory(' + (pagination.currentPage - 1) + ')">›</button>';
+
+  const startPage = Math.max(1, pagination.currentPage - 2);
+  const endPage = Math.min(pagination.totalPages, startPage + 4);
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += '<button class="pagination-btn ' + (i === pagination.currentPage ? 'active' : '') + 
+            '" onclick="loadHistory(' + i + ')">' + i + '</button>';
+  }
+
+  html += '<button class="pagination-btn" ' + (pagination.hasNext ? '' : 'disabled') + 
+          ' onclick="loadHistory(' + (pagination.currentPage + 1) + ')">‹</button>';
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function resetHistoryFilters() {
+  document.getElementById('historyFilterAction').value = 'all';
+  document.getElementById('historyFilterEmployee').value = 'all';
+
+  const today = new Date();
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  document.getElementById('historyDateTo').value = today.toISOString().split('T')[0];
+  document.getElementById('historyDateFrom').value = lastWeek.toISOString().split('T')[0];
+
+  loadHistory(1);
+}
+
+function exportHistory() {
+  const filters = {
+    action: document.getElementById('historyFilterAction').value,
+    employee: document.getElementById('historyFilterEmployee').value,
+    dateFrom: document.getElementById('historyDateFrom').value,
+    dateTo: document.getElementById('historyDateTo').value
+  };
+
+  App.showLoading();
+
+  App.api('exportHistory', { filters: filters })
+    .then(function(result) {
+      const data = result.data;
+      if (data && data.content) {
+        const blob = new Blob(['\ufeff' + data.content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = data.filename || 'history.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+
+        App.toast('تم تصدير السجل بنجاح', 'success');
+      }
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تصدير السجل', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+</script>
