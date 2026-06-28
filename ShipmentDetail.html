@@ -1,0 +1,892 @@
+<!-- ============================================
+     ShipmentDetail.html - تفاصيل الشحنة
+     ============================================ -->
+
+<div class="page-content animate-fade-in">
+
+  <!-- Page Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: #212121; margin-bottom: 4px;">تفاصيل الشحنة</h1>
+      <p style="font-size: 14px; color: #757575;">عرض كامل بيانات الشحنة وسجل التتبع</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" onclick="App.navigate('shipments')">
+        <span>←</span>
+        <span>العودة للشحنات</span>
+      </button>
+      <button class="btn btn-primary" onclick="openEditShipmentModal()" data-perm="EDIT_SHIPMENT" style="display: none;">
+        <span>✏️</span>
+        <span>تعديل</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Shipment Info Cards -->
+  <div class="grid grid-cols-3" style="margin-bottom: 24px;">
+
+    <!-- Main Info -->
+    <div class="card" style="grid-column: span 2;">
+      <div class="card-header">
+        <span class="card-title">معلومات الشحنة</span>
+        <span id="shipmentStatusBadge"></span>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">رقم التتبع</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailTrackingNumber">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">رقم الطلب</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailOrderCode">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">اسم العميل</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailCustomerName">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الهاتف</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121; direction: ltr; text-align: right;" id="detailPhone">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الهاتف الثاني</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121; direction: ltr; text-align: right;" id="detailSecondPhone">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">المحافظة</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailGovernorate">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">المدينة</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailCity">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الفرع</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailBranch">-</div>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">العنوان الكامل</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailAddress">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product & Price -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">المنتج والسعر</span>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">اسم المنتج</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailProductName">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الكمية</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailQuantity">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">السعر</div>
+            <div style="font-size: 20px; font-weight: 700; color: #1976D2;" id="detailPrice">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">مبلغ COD</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailCOD">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الأولوية</div>
+            <div id="detailPriority">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Assignment & Dates -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+
+    <!-- Assignment Info -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">توزيع الشحنة</span>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">الموظف المسؤول</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailEmployee">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">تاريخ التوزيع</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailAssignedAt">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">نوع التوزيع</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailAssignmentType">-</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px; display: flex; gap: 8px;" data-perm="REASSIGN_SHIPMENT" style="display: none;">
+          <button class="btn btn-sm btn-primary" onclick="openReassignModal()">إعادة توزيع</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dates -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">التواريخ</span>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">تاريخ الإنشاء</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailCreatedAt">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">آخر تحديث</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailUpdatedAt">-</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #757575; margin-bottom: 4px;">تاريخ التسليم</div>
+            <div style="font-size: 16px; font-weight: 600; color: #212121;" id="detailDeliveredAt">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tags & Notes -->
+  <div class="grid grid-cols-2" style="margin-bottom: 24px;">
+
+    <!-- Tags -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الوسوم</span>
+      </div>
+      <div class="card-body">
+        <div id="detailTags" style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
+      </div>
+    </div>
+
+    <!-- General Notes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">ملاحظات عامة</span>
+      </div>
+      <div class="card-body">
+        <div style="font-size: 14px; color: #424242; line-height: 1.8;" id="detailNotes">
+          -
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <span class="card-title">إجراءات سريعة</span>
+    </div>
+    <div class="card-body" style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button class="btn btn-primary" onclick="openStatusUpdateModal()" data-perm="UPDATE_STATUS" style="display: none;">
+        <span>📊</span>
+        <span>تحديث الحالة</span>
+      </button>
+      <button class="btn btn-secondary" onclick="openAddNoteModal()">
+        <span>📝</span>
+        <span>إضافة ملاحظة</span>
+      </button>
+      <button class="btn btn-outline" onclick="openFollowUpModal()" data-perm="FOLLOW_UP" style="display: none;">
+        <span>📞</span>
+        <span>متابعة</span>
+      </button>
+      <button class="btn btn-danger" onclick="deleteCurrentShipment()" data-perm="DELETE_SHIPMENT" style="display: none;">
+        <span>🗑️</span>
+        <span>حذف الشحنة</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- History Timeline -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">سجل التتبع</span>
+    </div>
+    <div class="card-body">
+      <div id="shipmentTimeline">
+        <!-- يتم ملؤها ديناميكياً -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Edit Shipment -->
+<div class="modal-overlay" id="editShipmentModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 class="modal-title">تعديل الشحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('editShipmentModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="editShipmentForm">
+        <input type="hidden" name="id" id="editShipmentId">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">رقم التتبع <span class="required">*</span></label>
+            <input type="text" name="TrackingNumber" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">رقم الطلب</label>
+            <input type="text" name="OrderCode" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">اسم العميل <span class="required">*</span></label>
+            <input type="text" name="CustomerName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الهاتف <span class="required">*</span></label>
+            <input type="tel" name="Phone" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الهاتف الثاني</label>
+            <input type="tel" name="SecondPhone" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">المحافظة <span class="required">*</span></label>
+            <select name="Governorate" class="form-select" required>
+              <option value="">اختر المحافظة</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">المدينة</label>
+            <input type="text" name="City" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">الفرع</label>
+            <input type="text" name="Branch" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">العنوان الكامل</label>
+          <textarea name="Address" class="form-textarea" rows="2"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">اسم المنتج <span class="required">*</span></label>
+            <input type="text" name="ProductName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الكمية</label>
+            <input type="number" name="Quantity" class="form-input" value="1" min="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">السعر <span class="required">*</span></label>
+            <input type="number" name="Price" class="form-input" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label class="form-label">مبلغ COD</label>
+            <input type="number" name="CODAmount" class="form-input" min="0" step="0.01">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الأولوية</label>
+            <select name="Priority" class="form-select">
+              <option value="عادي">عادي</option>
+              <option value="منخفض">منخفض</option>
+              <option value="عالي">عالي</option>
+              <option value="عاجل">عاجل</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">وسوم</label>
+            <input type="text" name="Tags" class="form-input" placeholder="مفصولة بفاصلة">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea name="Notes" class="form-textarea" rows="3"></textarea>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('editShipmentModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveShipmentEdit()">حفظ التعديلات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Update Status -->
+<div class="modal-overlay" id="statusUpdateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">تحديث حالة الشحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('statusUpdateModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">الحالة الحالية</label>
+        <div id="currentStatusDisplay" style="padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 14px; font-weight: 500;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الحالة الجديدة <span class="required">*</span></label>
+        <select id="detailNewStatus" class="form-select" required>
+          <option value="جاهز للاستلام">جاهز للاستلام</option>
+          <option value="تم التسليم">تم التسليم</option>
+          <option value="لا يرد">لا يرد</option>
+          <option value="مؤجل">مؤجل</option>
+          <option value="مرتجع">مرتجع</option>
+          <option value="رفض بسبب الخامة">رفض بسبب الخامة</option>
+          <option value="رفض بسبب التأخير">رفض بسبب التأخير</option>
+          <option value="مغلق">مغلق</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea id="detailStatusNotes" class="form-textarea" rows="3" placeholder="أضف ملاحظات عن تحديث الحالة..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('statusUpdateModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitStatusUpdate()">تحديث</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Note -->
+<div class="modal-overlay" id="addNoteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">إضافة ملاحظة</h3>
+      <button class="modal-close" onclick="App.closeModal('addNoteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">الملاحظة <span class="required">*</span></label>
+        <textarea id="detailNoteText" class="form-textarea" rows="4" placeholder="اكتب ملاحظتك هنا..." required></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('addNoteModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitAddNote()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Reassign -->
+<div class="modal-overlay" id="detailReassignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">إعادة توزيع الشحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('detailReassignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">الموظف الجديد <span class="required">*</span></label>
+        <select id="detailReassignEmployee" class="form-select" required>
+          <option value="">اختر موظف</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('detailReassignModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitDetailReassign()">إعادة توزيع</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Follow Up -->
+<div class="modal-overlay" id="followUpModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">متابعة الشحنة</h3>
+      <button class="modal-close" onclick="App.closeModal('followUpModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding: 12px; background: #FFF3E0; border-radius: 8px; margin-bottom: 16px; font-size: 14px; color: #E65100;">
+        <strong>⚠️ تنبيه:</strong> سيتم تسجيل هذه المتابعة في سجل الشحنة وزيادة عداد "لا يرد".
+      </div>
+      <div class="form-group">
+        <label class="form-label">نتيجة المتابعة</label>
+        <select id="followUpResult" class="form-select">
+          <option value="NO_ANSWER">لا يرد</option>
+          <option value="ANSWERED">رد</option>
+          <option value="WRONG_NUMBER">رقم خاطئ</option>
+          <option value="BUSY">مشغول</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات المتابعة</label>
+        <textarea id="followUpNotes" class="form-textarea" rows="3" placeholder="ملاحظات عن المكالمة..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('followUpModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitFollowUp()">تسجيل المتابعة</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Shipment Detail Page Scripts
+// ============================================
+
+let currentShipmentId = null;
+let currentShipmentData = null;
+
+function initShipmentDetail() {
+  currentShipmentId = sessionStorage.getItem('currentShipment');
+
+  if (!currentShipmentId) {
+    App.toast('لم يتم تحديد شحنة', 'error');
+    App.navigate('shipments');
+    return;
+  }
+
+  // إظهار/إخفاء عناصر حسب الصلاحيات
+  document.querySelectorAll('[data-perm]').forEach(function(el) {
+    const perm = el.getAttribute('data-perm');
+    if (App.hasPermission(perm)) {
+      el.style.display = '';
+    }
+  });
+
+  loadShipmentDetail();
+}
+
+function loadShipmentDetail() {
+  App.showLoading();
+
+  App.api('getShipment', { shipmentId: currentShipmentId })
+    .then(function(result) {
+      currentShipmentData = result.data;
+      renderShipmentDetail(result.data);
+      loadShipmentHistory();
+      App.hideLoading();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحميل بيانات الشحنة', 'error');
+      App.hideLoading();
+      App.navigate('shipments');
+    });
+}
+
+function renderShipmentDetail(s) {
+  if (!s) return;
+
+  const statusClassMap = {
+    'غير موزعة': 'unassigned',
+    'جاهز للاستلام': 'ready',
+    'تم التسليم': 'delivered',
+    'لا يرد': 'no-answer',
+    'مؤجل': 'postponed',
+    'مرتجع': 'returned',
+    'رفض بسبب الخامة': 'rejected-quality',
+    'رفض بسبب التأخير': 'rejected-delay',
+    'مغلق': 'closed'
+  };
+
+  const statusClass = statusClassMap[s.status] || '';
+
+  // Status badge
+  document.getElementById('shipmentStatusBadge').innerHTML = 
+    '<span class="status-badge ' + statusClass + '" style="font-size: 14px; padding: 6px 16px;">' + App.escapeHtml(s.status) + '</span>';
+
+  // Basic info
+  document.getElementById('detailTrackingNumber').textContent = App.escapeHtml(s.trackingNumber) || '-';
+  document.getElementById('detailOrderCode').textContent = App.escapeHtml(s.orderCode) || '-';
+  document.getElementById('detailCustomerName').textContent = App.escapeHtml(s.customerName) || '-';
+  document.getElementById('detailPhone').textContent = App.escapeHtml(s.phone) || '-';
+  document.getElementById('detailSecondPhone').textContent = App.escapeHtml(s.secondPhone) || '-';
+  document.getElementById('detailGovernorate').textContent = App.escapeHtml(s.governorate) || '-';
+  document.getElementById('detailCity').textContent = App.escapeHtml(s.city) || '-';
+  document.getElementById('detailBranch').textContent = App.escapeHtml(s.branch) || '-';
+  document.getElementById('detailAddress').textContent = App.escapeHtml(s.address) || '-';
+
+  // Product & Price
+  document.getElementById('detailProductName').textContent = App.escapeHtml(s.productName) || '-';
+  document.getElementById('detailQuantity').textContent = s.quantity || '1';
+  document.getElementById('detailPrice').textContent = App.formatCurrency(s.price);
+  document.getElementById('detailCOD').textContent = App.formatCurrency(s.codAmount);
+
+  // Priority
+  const priorityClassMap = {
+    'منخفض': 'low',
+    'عادي': 'normal',
+    'عالي': 'high',
+    'عاجل': 'urgent'
+  };
+  const priorityClass = priorityClassMap[s.priority] || '';
+  document.getElementById('detailPriority').innerHTML = 
+    '<span class="priority-badge ' + priorityClass + '">' + App.escapeHtml(s.priority) + '</span>';
+
+  // Assignment
+  document.getElementById('detailEmployee').textContent = s.assignedEmployeeName || 'غير موزعة';
+  document.getElementById('detailAssignedAt').textContent = s.assignedAt ? App.formatDateTime(s.assignedAt) : '-';
+  document.getElementById('detailAssignmentType').textContent = s.assignmentType || '-';
+
+  // Dates
+  document.getElementById('detailCreatedAt').textContent = s.createdAt ? App.formatDateTime(s.createdAt) : '-';
+  document.getElementById('detailUpdatedAt').textContent = s.updatedAt ? App.formatDateTime(s.updatedAt) : '-';
+  document.getElementById('detailDeliveredAt').textContent = s.deliveredAt ? App.formatDateTime(s.deliveredAt) : '-';
+
+  // Tags
+  const tagsContainer = document.getElementById('detailTags');
+  if (s.tags) {
+    const tags = s.tags.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; });
+    if (tags.length > 0) {
+      tagsContainer.innerHTML = tags.map(function(tag) {
+        return '<span class="tag">' + App.escapeHtml(tag) + '</span>';
+      }).join('');
+    } else {
+      tagsContainer.innerHTML = '<span style="color: #999;">لا توجد وسوم</span>';
+    }
+  } else {
+    tagsContainer.innerHTML = '<span style="color: #999;">لا توجد وسوم</span>';
+  }
+
+  // Notes
+  document.getElementById('detailNotes').textContent = s.notes || 'لا توجد ملاحظات';
+}
+
+function loadShipmentHistory() {
+  App.api('getShipmentHistory', { shipmentId: currentShipmentId })
+    .then(function(result) {
+      renderShipmentTimeline(result.data || []);
+    })
+    .catch(function() {
+      document.getElementById('shipmentTimeline').innerHTML = 
+        '<div style="text-align:center;padding:20px;color:#999;">لا يوجد سجل</div>';
+    });
+}
+
+function renderShipmentTimeline(history) {
+  const container = document.getElementById('shipmentTimeline');
+  if (!container) return;
+
+  if (!history || history.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">لا يوجد سجل تتبع</div>';
+    return;
+  }
+
+  const actionIcons = {
+    'إنشاء': '🆕',
+    'تحديث': '✏️',
+    'حذف': '🗑️',
+    'توزيع': '🔄',
+    'إعادة توزيع': '🔀',
+    'تغيير حالة': '📊',
+    'إضافة ملاحظة': '📝',
+    'متابعة': '📞',
+    'استيراد': '📥',
+    'تصدير': '📤',
+    'تسجيل دخول': '🔐',
+    'تسجيل خروج': '🚪'
+  };
+
+  container.innerHTML = '<div class="timeline">' + history.map(function(h) {
+    const icon = actionIcons[h.actionType] || '📋';
+    const dotClass = h.actionType === 'تغيير حالة' ? 'success' : 
+                     h.actionType === 'حذف' ? 'error' : 
+                     h.actionType === 'متابعة' ? 'warning' : '';
+
+    return '<div class="timeline-item">' +
+      '<div class="timeline-dot ' + dotClass + '"></div>' +
+      '<div class="timeline-content">' +
+        '<div class="timeline-time">' + App.formatDateTime(h.timestamp) + '</div>' +
+        '<div class="timeline-title">' + icon + ' ' + App.escapeHtml(h.actionType) + '</div>' +
+        '<div class="timeline-desc">' +
+          (h.employeeName ? 'بواسطة: <strong>' + App.escapeHtml(h.employeeName) + '</strong>' : '') +
+          (h.oldStatus && h.newStatus ? '<br>من: ' + App.escapeHtml(h.oldStatus) + ' → إلى: ' + App.escapeHtml(h.newStatus) : '') +
+          (h.notes ? '<br>' + App.escapeHtml(h.notes) : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// ============================================
+// Edit Shipment
+// ============================================
+
+function openEditShipmentModal() {
+  if (!currentShipmentData) return;
+
+  document.getElementById('editShipmentId').value = currentShipmentId;
+
+  // تحميل المحافظات
+  const govSelect = document.querySelector('#editShipmentForm select[name="Governorate"]');
+  if (govSelect) {
+    const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحر الأحمر',
+      'البحيرة', 'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية',
+      'المنيا', 'القليوبية', 'الوادي الجديد', 'السويس', 'اسوان',
+      'اسيوط', 'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية',
+      'جنوب سيناء', 'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا',
+      'شمال سيناء', 'سوهاج'];
+
+    govSelect.innerHTML = '<option value="">اختر المحافظة</option>';
+    governorates.forEach(function(g) {
+      const opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g;
+      govSelect.appendChild(opt);
+    });
+  }
+
+  App.setFormData('editShipmentForm', {
+    TrackingNumber: currentShipmentData.trackingNumber,
+    OrderCode: currentShipmentData.orderCode,
+    CustomerName: currentShipmentData.customerName,
+    Phone: currentShipmentData.phone,
+    SecondPhone: currentShipmentData.secondPhone,
+    Governorate: currentShipmentData.governorate,
+    City: currentShipmentData.city,
+    Branch: currentShipmentData.branch,
+    Address: currentShipmentData.address,
+    ProductName: currentShipmentData.productName,
+    Quantity: currentShipmentData.quantity,
+    Price: currentShipmentData.price,
+    CODAmount: currentShipmentData.codAmount,
+    Priority: currentShipmentData.priority,
+    Tags: currentShipmentData.tags,
+    Notes: currentShipmentData.notes
+  });
+
+  App.openModal('editShipmentModal');
+}
+
+function saveShipmentEdit() {
+  const data = App.getFormData('editShipmentForm');
+
+  if (!data.TrackingNumber || !data.CustomerName || !data.Phone || !data.Governorate || !data.ProductName || !data.Price) {
+    App.toast('يرجى ملء جميع الحقول المطلوبة', 'error');
+    return;
+  }
+
+  App.showLoading();
+
+  App.api('updateShipment', { shipmentId: currentShipmentId, shipment: data })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('editShipmentModal');
+      loadShipmentDetail();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في حفظ التعديلات', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Update Status
+// ============================================
+
+function openStatusUpdateModal() {
+  if (!currentShipmentData) return;
+
+  document.getElementById('currentStatusDisplay').textContent = currentShipmentData.status;
+  document.getElementById('detailNewStatus').value = currentShipmentData.status;
+  document.getElementById('detailStatusNotes').value = '';
+
+  App.openModal('statusUpdateModal');
+}
+
+function submitStatusUpdate() {
+  const status = document.getElementById('detailNewStatus').value;
+  const notes = document.getElementById('detailStatusNotes').value;
+
+  if (!status) {
+    App.toast('يرجى اختيار الحالة', 'error');
+    return;
+  }
+
+  App.showLoading();
+
+  App.api('updateShipmentStatus', {
+    shipmentId: currentShipmentId,
+    status: status,
+    notes: notes
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('statusUpdateModal');
+      loadShipmentDetail();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تحديث الحالة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Add Note
+// ============================================
+
+function openAddNoteModal() {
+  document.getElementById('detailNoteText').value = '';
+  App.openModal('addNoteModal');
+}
+
+function submitAddNote() {
+  const note = document.getElementById('detailNoteText').value.trim();
+
+  if (!note) {
+    App.toast('يرجى كتابة ملاحظة', 'error');
+    return;
+  }
+
+  App.showLoading();
+
+  App.api('addShipmentNote', {
+    shipmentId: currentShipmentId,
+    note: note
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('addNoteModal');
+      loadShipmentHistory();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إضافة الملاحظة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Reassign
+// ============================================
+
+function openReassignModal() {
+  if (!currentShipmentData) return;
+
+  const select = document.getElementById('detailReassignEmployee');
+  select.innerHTML = '<option value="">اختر موظف</option>';
+
+  App.api('getEmployees', {})
+    .then(function(result) {
+      const employees = result.data || [];
+      employees.filter(function(e) { return e.IsActive === 'true'; }).forEach(function(emp) {
+        const opt = document.createElement('option');
+        opt.value = emp.ID;
+        opt.textContent = emp.Name || emp.Username;
+        select.appendChild(opt);
+      });
+
+      App.openModal('detailReassignModal');
+    });
+}
+
+function submitDetailReassign() {
+  const employeeId = document.getElementById('detailReassignEmployee').value;
+
+  if (!employeeId) {
+    App.toast('يرجى اختيار موظف', 'error');
+    return;
+  }
+
+  App.showLoading();
+
+  App.api('reassignShipment', { shipmentId: currentShipmentId, newEmployeeId: employeeId })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('detailReassignModal');
+      loadShipmentDetail();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في إعادة التوزيع', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Follow Up
+// ============================================
+
+function openFollowUpModal() {
+  document.getElementById('followUpResult').value = 'NO_ANSWER';
+  document.getElementById('followUpNotes').value = '';
+  App.openModal('followUpModal');
+}
+
+function submitFollowUp() {
+  const result = document.getElementById('followUpResult').value;
+  const notes = document.getElementById('followUpNotes').value;
+
+  App.showLoading();
+
+  App.api('followUpShipment', {
+    shipmentId: currentShipmentId,
+    result: result,
+    notes: notes
+  })
+    .then(function(result) {
+      App.toast(result.message, 'success');
+      App.closeModal('followUpModal');
+      loadShipmentDetail();
+      loadShipmentHistory();
+    })
+    .catch(function(result) {
+      App.toast(result.message || 'فشل في تسجيل المتابعة', 'error');
+    })
+    .finally(function() {
+      App.hideLoading();
+    });
+}
+
+// ============================================
+// Delete Shipment
+// ============================================
+
+function deleteCurrentShipment() {
+  App.confirm('هل أنت متأكد من حذف هذه الشحنة؟ لا يمكن التراجع عن هذا الإجراء.', function() {
+    App.showLoading();
+
+    App.api('deleteShipment', { shipmentId: currentShipmentId })
+      .then(function(result) {
+        App.toast(result.message, 'success');
+        App.navigate('shipments');
+      })
+      .catch(function(result) {
+        App.toast(result.message || 'فشل في حذف الشحنة', 'error');
+      })
+      .finally(function() {
+        App.hideLoading();
+      });
+  });
+}
+</script>
